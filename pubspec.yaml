@@ -43,7 +43,7 @@ dependencies:
   path_url_strategy_module: ^1.0.2
   dropdown_search: ^6.0.0
   fl_chart: ^0.70.2
-  intl: 0.19.0
+  intl: any
   syncfusion_flutter_gauges: ^29.1.33
   liquid_progress_indicator: ^0.4.0
   syncfusion_flutter_charts: ^29.1.33
