@@ -10,11 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:liquid_progress_indicator/liquid_progress_indicator.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart' as gauges;
 import 'package:syncfusion_flutter_gauges/gauges.dart';
-
+import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
 import 'dashboard_common_methods.dart';
 
 class DashboardCommonGauges {
