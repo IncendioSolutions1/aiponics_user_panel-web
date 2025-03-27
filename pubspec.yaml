@@ -83,7 +83,7 @@ dependencies:
   dio: ^5.7.0
   fluttertoast: ^8.2.12
   another_flushbar: ^1.12.30
-  skeletonizer: ^1.4.3
+#  skeletonizer: ^1.4.3
 
 dev_dependencies:
   flutter_test:

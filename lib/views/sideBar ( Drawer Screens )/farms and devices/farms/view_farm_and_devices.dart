@@ -6,7 +6,7 @@ import 'package:aiponics_web_app/views/common/header/header_without_farm_dropdow
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:skeletonizer/skeletonizer.dart';
+// import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../models/farm and devices models/device_model.dart';
 import '../../../../models/farm and devices models/farm_model.dart';
@@ -150,16 +150,19 @@ class _ViewFarmAndDevicesState extends ConsumerState<ViewFarmAndDevices> {
                 regDate: '',
               )
             : ref.watch(viewFarmsAndDevicesProvider).farmModelList[index];
-        return Skeletonizer(
-          enableSwitchAnimation: true,
-          enabled: ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading,
-          child: farmCard(
+        return
+          // Skeletonizer(
+          // enableSwitchAnimation: true,
+          // enabled: ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading,
+          // child:
+          farmCard(
             farm,
             fiveWidth,
             nameFontSize,
             typeFontSize,
-          ),
-        );
+          )
+        // )
+        ;
       },
     );
   }
@@ -319,16 +322,19 @@ class _ViewFarmAndDevicesState extends ConsumerState<ViewFarmAndDevices> {
             deviceId: ''
               )
             : ref.watch(viewFarmsAndDevicesProvider).deviceModelList[index];
-        return Skeletonizer(
-          enableSwitchAnimation: true,
-          enabled: ref.watch(viewFarmsAndDevicesProvider).areDevicesLoading,
-          child: deviceCard(
+        return
+          // Skeletonizer(
+          // enableSwitchAnimation: true,
+          // enabled: ref.watch(viewFarmsAndDevicesProvider).areDevicesLoading,
+          // child:
+          deviceCard(
             device,
             fiveWidth,
             nameFontSize,
             typeFontSize,
-          ),
-        );
+          )
+        // )
+        ;
       },
     );
   }
