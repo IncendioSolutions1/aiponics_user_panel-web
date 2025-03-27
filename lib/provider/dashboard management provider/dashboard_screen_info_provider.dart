@@ -39,7 +39,6 @@ class DashboardScreenInfoNotifier extends StateNotifier<Map<String, dynamic>> {
     required String responsiveness,
     required double fiveWidth,
     required double fiveHeight,
-    required double screenWidth,
     required double screenRemainingWidth,
     required double screenFullWidth,
   }) {
@@ -48,7 +47,6 @@ class DashboardScreenInfoNotifier extends StateNotifier<Map<String, dynamic>> {
       'screenResponsiveness': responsiveness,
       'fiveWidth': fiveWidth,
       'fiveHeight': fiveHeight,
-      'screenWidth': screenWidth,
       'screenRemainingWidth': screenRemainingWidth,
       'screenFullWidth': screenFullWidth,
     };

@@ -1,7 +1,5 @@
 import 'package:aiponics_web_app/views/authentication/login_screen.dart';
 import 'package:aiponics_web_app/views/authentication/register_screen.dart';
-import 'package:aiponics_web_app/views/landing%20page/env/widgets/errorpage.dart';
-import 'package:aiponics_web_app/views/landing%20page/env/widgets/homepage.dart';
 import 'package:aiponics_web_app/views/sideBar ( Drawer Screens )/dashboard%20management/control_panel.dart';
 import 'package:aiponics_web_app/views/sideBar%20(%20Drawer%20Screens%20)/teams%20and%20permissions/add_a_team.dart';
 import 'package:aiponics_web_app/views/sideBar%20(%20Drawer%20Screens%20)/teams%20and%20permissions/add_a_team_member.dart';
@@ -10,7 +8,9 @@ import 'package:aiponics_web_app/views/sideBar%20(%20Drawer%20Screens%20)/user%2
 import 'package:aiponics_web_app/views/sideBar%20(%20Drawer%20Screens%20)/user%20profile/transaction_history.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../views/authentication/splash_screen.dart';
 import '../views/sideBar ( Drawer Screens )/dashboard management/dashboard.dart';
 import '../views/sideBar ( Drawer Screens )/dashboard management/soil_dashboard.dart';
 import '../views/sideBar ( Drawer Screens )/data/records/dosing_system.dart';
@@ -24,14 +24,14 @@ import '../views/sideBar ( Drawer Screens )/farms and devices/farms/view_farm_an
 class TRoutes {
   // Define route constants for navigation
 
-  static const mainPage = '/';
-  static const errorPage = '/error';
 
   static const login = '/login';
   static const forgetPassword = '/forget-password';
   static const register = '/register';
+  static const splashScreen = '/splash-screen';
 
   static const dashboard = '/dashboard-management/dashboard';
+  static const home = '/';
   static const soilDashboard = '/dashboard-management/soil-dashboard';
   static const controlPanel = '/dashboard-management/control-panel';
 
@@ -59,13 +59,13 @@ class TRoutes {
 
   static const documentation = '/documentation';
 
+
   // Map of routes to corresponding widgets
   static Map<String, Widget> routesMap = {
-    mainPage : const HomePageWidget(),
-    errorPage: ErrorPageWidget(),
     login: const LoginScreen(),
     register: const RegisterScreen(),
     dashboard: const Dashboard(),
+    home: const Dashboard(),
     soilDashboard: const SoilBasedDashboard(),
     controlPanel: const ControlPanel(),
     viewFarmsAndDevices: const ViewFarmAndDevices(),
@@ -80,6 +80,7 @@ class TRoutes {
     viewTeamsAndMembers: const ViewTeamsAndMembers(),
     transactionHistory: const TransactionHistory(),
     subscriptionPlans: const SubscriptionPlan(),
+    splashScreen: const SplashScreen(),
   };
 
   // Define the side menu structure with sections and sub-options

@@ -12,8 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-
+import '../../../../controllers/farm and device controller/farm_controller.dart';
 import '../../../../provider/colors and theme provider/color_scheme_provider.dart';
 
 class AddFarms extends ConsumerStatefulWidget {
@@ -25,6 +24,13 @@ class AddFarms extends ConsumerStatefulWidget {
 
 class _AddFarmsState extends ConsumerState<AddFarms> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ScrollController _scrollController = ScrollController();
+
+  double spaceBetweenLabelAndTextField = 15;
+  double spaceBetweenTwoTextFields = 20;
+  double spaceBetweenTwoTextFieldsRows = 30;
+
+  late ThemeColors themeColors;
 
   late Color boxColor;
   late Color borderColor;
@@ -39,39 +45,24 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
   late double width;
   late BuildContext contexts;
 
-  late ThemeColors themeColors;
-
-  late bool imageSelectTextColorShow;
-  late String imageSelectText;
-  late List<String> cropChoices;
-  late List<String> farmTypes;
-  late List<String> operationalStatus;
-  // Initially, no farm is selected
-  late String selectedCropChoices;
-  late String selectedFarmType;
-  late String selectedOperationalStatusChoice;
-
   late TextEditingController _cropType;
-  late TextEditingController _customCropType;
-  late TextEditingController _farmTypes;
+  final TextEditingController _customCropType = TextEditingController();
   late TextEditingController _farmName;
   late TextEditingController _location;
   late TextEditingController _farmArea;
-  late TextEditingController _farmStatus;
   late TextEditingController _description;
 
-  late bool showCustomCropTypeField;
-  late String otherCropType;
-  late bool isSqMeterSelected;
-  late bool isSqFeetSelected;
-  late bool isAcerSelected;
+  late List<String> cropChoicesList;
+  late List<String> farmTypesList;
+  late List<String> operationalStatusList;
+
+  bool isCropTypeCustom = false;
+
+  late bool imageSelectTextColorShow;
+  late String imageSelectText;
+
   late double _descriptionFieldHeight; // Initial height for text field
 
-  final ScrollController _scrollController = ScrollController();
-
-  double spaceBetweenLabelAndTextField = 15;
-  double spaceBetweenTwoTextFields = 20;
-  double spaceBetweenTwoTextFieldsRows = 30;
 
   late File? _image;
   late ImagePicker _picker;
@@ -79,133 +70,13 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
   late Size? _imageSize;
 
   late final AddFarmNotifier addFarmNotifier;
-  late final ImageControllerNotifier imageControllerNotifier;
   late dynamic addFarmProv;
+
+  late final ImageControllerNotifier imageControllerNotifier;
   late dynamic imageControllerProv;
 
-  Future<void> _pickImage() async {
-    ImageControllerNotifier imageControllerNotifier = ref.read(imageControllerProvider.notifier);
-    final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
+  bool isSaving = false;
 
-    if (pickedFile != null) {
-      if (kIsWeb) {
-        // Load image as Uint8List for web
-        final bytes = await pickedFile.readAsBytes();
-        imageControllerNotifier.updateWebImage(bytes);
-        _getImageSize(null, bytes);
-      } else {
-        // Save the selected image file for mobile
-        imageControllerNotifier.updateImage(File(pickedFile.path));
-        _getImageSize(File(pickedFile.path), null);
-      }
-
-
-    } else {
-      debugPrint("No image selected"); // Changed to debugPrint for better logging
-    }
-  }
-
-  void _getImageSize(File? mobileImage, Uint8List? webImage) {
-
-    if (mobileImage != null) {
-      final Image image = Image.file(mobileImage);
-      final ImageStream stream =
-          image.image.resolve(const ImageConfiguration());
-
-      stream.addListener(ImageStreamListener((ImageInfo info, bool syncCall) {
-        // Get the image dimensions
-        final Size size =
-            Size(info.image.width.toDouble(), info.image.height.toDouble());
-        imageControllerNotifier.updateImageSize(size);
-      }));
-    } else if (webImage != null) {
-      final Image image = Image.memory(webImage);
-      final ImageStream stream =
-          image.image.resolve(const ImageConfiguration());
-
-      stream.addListener(ImageStreamListener((ImageInfo info, bool syncCall) {
-        // Get the image dimensions
-        final Size size =
-            Size(info.image.width.toDouble(), info.image.height.toDouble());
-        imageControllerNotifier.updateImageSize(size);
-      }));
-    }
-
-  }
-
-  _saveData() async {
-    if (_formKey.currentState!.validate() &&
-        (_image != null || _webImage != null)) {
-
-      // final url2 = Uri.parse(
-      //     "http://192.168.10.13:8000/api/users/create-farms and devices/");
-      //
-      // final registerResponse2 = await http.post(
-      //   url2,
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: json.encode({
-      //     'name': _farmName.text,
-      //     'location': _location.text,
-      //     'farm_area': _farmArea.text,
-      //     'crops': _cropType.text,
-      //     'description': _description.text,
-      //     'operational_status': _farmStatus.text,
-      //   }),
-      // );
-      //
-      // if (registerResponse2.statusCode == 200) {
-      //   dev.log("Response send to ADD FARM");
-      //   dev.log("Api Reply  ${registerResponse2.body}");
-      // } else {
-      //   dev.log("Response error ${registerResponse2.statusCode}");
-      //   dev.log("Response error ${registerResponse2.body}");
-      // }
-
-      dev.log("Farm name: ${_farmName.text}");
-      dev.log("Farm Type: ${_farmTypes.text}");
-      dev.log("Crop Type: ${_cropType.text}");
-      dev.log("Location: ${_location.text}");
-      dev.log("Farm Status: ${_farmStatus.text}");
-      dev.log("Farm Area: ${_farmArea.text}");
-      dev.log("Description: ${_description.text}");
-
-      if(_cropType.text == otherCropType){
-        dev.log("Custom Crop Type: ${_customCropType.text}");
-      }
-
-      if(isSqMeterSelected){
-        dev.log("Sq Meter: $isSqMeterSelected");
-      }else if(isSqFeetSelected){
-        dev.log("Sq Feet: $isSqFeetSelected");
-      }else if(isAcerSelected){
-        dev.log("Acer: $isAcerSelected");
-      }
-
-    } else {
-      // Validation failed, fields will be highlighted
-      if (_image == null || _webImage == null) {
-        addFarmNotifier.updateImageSelectText("Image is required to continue!");
-        addFarmNotifier.toggleShowErrorTextColorOnImage(true);
-      }
-      dev.log("Validation failed");
-    }
-  }
-
-  String unitConversion(String farmArea) {
-    double sqFeet;
-
-    if (isSqMeterSelected) {
-      sqFeet = double.parse(farmArea) * 10.7639;
-    } else if (isAcerSelected) {
-      sqFeet = double.parse(farmArea) * 43560;
-    } else {
-      sqFeet = double.parse(farmArea);
-    }
-   return sqFeet.toStringAsFixed(3);
-  }
 
   @override
   void initState() {
@@ -223,6 +94,104 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
       imageControllerNotifier.resetState();
     });
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    ImageControllerNotifier imageControllerNotifier = ref.read(imageControllerProvider.notifier);
+    final XFile? pickedFile =
+    await _picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      if (kIsWeb) {
+        // Load image as Uint8List for web
+        final bytes = await pickedFile.readAsBytes();
+        imageControllerNotifier.updateWebImage(bytes);
+        getImageSize(null, bytes);
+      } else {
+        // Save the selected image file for mobile
+        imageControllerNotifier.updateImage(File(pickedFile.path));
+        getImageSize(File(pickedFile.path), null);
+      }
+
+
+    } else {
+      dev.log("No image selected"); // Changed to debugPrint for better logging
+    }
+  }
+
+  void getImageSize(File? mobileImage, Uint8List? webImage) {
+
+    if (mobileImage != null) {
+      final Image image = Image.file(mobileImage);
+      final ImageStream stream =
+      image.image.resolve(const ImageConfiguration());
+
+      stream.addListener(ImageStreamListener((ImageInfo info, bool syncCall) {
+        // Get the image dimensions
+        final Size size =
+        Size(info.image.width.toDouble(), info.image.height.toDouble());
+        imageControllerNotifier.updateImageSize(size);
+      }));
+    } else if (webImage != null) {
+      final Image image = Image.memory(webImage);
+      final ImageStream stream =
+      image.image.resolve(const ImageConfiguration());
+
+      stream.addListener(ImageStreamListener((ImageInfo info, bool syncCall) {
+        // Get the image dimensions
+        final Size size =
+        Size(info.image.width.toDouble(), info.image.height.toDouble());
+        imageControllerNotifier.updateImageSize(size);
+      }));
+    }
+
+  }
+
+  void saveData() async {
+    if (_formKey.currentState!.validate() ||
+        (_image != null || _webImage != null)) {
+
+      setState(() {
+        isSaving = true;
+      });
+      // Replace with your actual API URL and token
+
+      addFarmNotifier.updateFarmName(_farmName.text);
+      addFarmNotifier.updateFarmsArea(double.parse(double.parse(_farmArea.text).toStringAsFixed(2)));
+      addFarmNotifier.updateFarmLocation(_location.text);
+      addFarmNotifier.updateFarmsDescription(_description.text);
+
+      if(ref.watch(addFarmProvider).isEditing ){
+        bool status = await addFarmNotifier.updateFarmToServer();
+      }else{
+        bool status = await addFarmNotifier.addFarmToServer();
+      }
+
+
+
+
+
+
+      // if(isSqMeterSelected){
+      //   dev.log("Sq Meter: $isSqMeterSelected");
+      // }else if(isSqFeetSelected){
+      //   dev.log("Sq Feet: $isSqFeetSelected");
+      // }else if(isAcerSelected){
+      //   dev.log("Acer: $isAcerSelected");
+      // }
+
+      setState(() {
+        isSaving = false;
+      });
+
+    } else {
+      // Validation failed, fields will be highlighted
+      // if (_image == null || _webImage == null) {
+      //   addFarmNotifier.updateImageSelectText("Image is required to continue!");
+      //   addFarmNotifier.toggleShowErrorTextColorOnImage(true);
+      // }
+      dev.log("Validation failed");
+    }
   }
 
   @override
@@ -244,6 +213,12 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
 
     final displayNotifier = ref.watch(dashboardScreenInfoProvider);
 
+
+    addFarmProv = ref.watch(addFarmProvider);
+    imageControllerProv = ref.watch(imageControllerProvider);
+    _image = ref.watch(imageControllerProvider).image;
+    _webImage = ref.watch(imageControllerProvider).webImage;
+
     screenResponsiveness = displayNotifier['screenResponsiveness'];
     fiveWidth = displayNotifier['fiveWidth'];
     fiveHeight = displayNotifier['fiveHeight'];
@@ -251,36 +226,38 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
     contexts = context;
 
 
-      addFarmProv = ref.watch(addFarmProvider);
-      imageControllerProv = ref.watch(imageControllerProvider);
+    _picker = imageControllerProv.picker;
+    _imageSize = imageControllerProv.imageSize;
 
-      imageSelectTextColorShow = addFarmProv.showErrorTextColorOnImage;
-      imageSelectText = addFarmProv.imageSelectText;
-      cropChoices = addFarmProv.cropChoicesList;
-      farmTypes = addFarmProv.farmTypesList;
-      operationalStatus = addFarmProv.operationalStatusList;
-      selectedCropChoices = addFarmProv.selectedCropChoices;
-      selectedFarmType = addFarmProv.selectedFarmType;
-      selectedOperationalStatusChoice = addFarmProv.selectedOperationalStatusChoice;
-      _cropType = addFarmProv.cropType;
-      _customCropType = addFarmProv.customCropType;
-      _farmTypes = addFarmProv.farmType;
-      _farmName = addFarmProv.farmName;
-      _location = addFarmProv.farmLocation;
-      _farmArea = addFarmProv.farmsArea;
-      _farmStatus = addFarmProv.farmOperationalStatus;
-      _description = addFarmProv.farmsDescription;
-      _descriptionFieldHeight = addFarmProv.descriptionFieldHeight;
-      showCustomCropTypeField = addFarmProv.showCustomCropTypeField;
-      otherCropType = addFarmProv.otherCropType;
-      isSqMeterSelected = addFarmProv.isSqMeterSelected;
-      isSqFeetSelected = addFarmProv.isSqFeetSelected;
-      isAcerSelected = addFarmProv.isAcerSelected;
 
-      _image = ref.watch(imageControllerProvider).image;
-      _webImage = ref.watch(imageControllerProvider).webImage;
-      _picker = imageControllerProv.picker;
-      _imageSize = imageControllerProv.imageSize;
+    cropChoicesList = ref.watch(addFarmProvider).cropChoicesList;
+    farmTypesList = ref.watch(addFarmProvider).farmTypesList;
+    operationalStatusList = ref.watch(addFarmProvider).operationalChoicesList;
+
+    _descriptionFieldHeight = ref.watch(addFarmProvider).descriptionFieldHeight;
+
+    imageSelectTextColorShow = ref.watch(addFarmProvider).showErrorTextColorOnImage;
+    imageSelectText = ref.watch(addFarmProvider).imageSelectText;
+
+    if(ref.watch(addFarmProvider).isEditing){
+
+      _farmName = TextEditingController(text: ref.watch(addFarmProvider).farmModel.name);
+      _location = TextEditingController(text: ref.watch(addFarmProvider).farmModel.location);
+      _farmArea = TextEditingController(text: ref.watch(addFarmProvider).farmModel.farmsArea.toStringAsFixed(2));
+      _description = TextEditingController(text: ref.watch(addFarmProvider).farmModel.farmDescription);
+      _cropType = TextEditingController(text: ref.watch(addFarmProvider).farmModel.crops);
+      dev.log("check farm: ${ref.watch(addFarmProvider).farmModel.toString()}");
+
+    }else{
+      _farmName = TextEditingController();
+      _location = TextEditingController();
+      _farmArea = TextEditingController();
+      _description = TextEditingController();
+      _cropType = TextEditingController();
+      dev.log("check farm false: ${ref.watch(addFarmProvider).farmModel.toString()}");
+
+    }
+
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -938,12 +915,11 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
       },
       onChanged: (String? newValue) {
           if (newValue != null) {
-            addFarmNotifier.updateSelectedFarmType(newValue);
             addFarmNotifier.updateFarmType(newValue);
           }
       },
-      items: (filter, infiniteScrollProps) => farmTypes,
-      selectedItem: selectedFarmType,
+      items: (filter, infiniteScrollProps) => farmTypesList,
+      selectedItem: addFarmProv.farmModel.farmType == '' ? "Select from here" : addFarmProv.farmModel.farmType,
       decoratorProps: DropDownDecoratorProps(
         decoration: InputDecoration(
           filled: true,
@@ -1011,19 +987,17 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
       },
       onChanged: (String? newValue) {
         if (newValue != null) {
-            selectedCropChoices = newValue;
             _cropType.text = newValue;
-            addFarmNotifier.updateSelectedCropChoices(newValue);
             addFarmNotifier.updateCropType(newValue);
-          if (newValue == otherCropType) {
-              addFarmNotifier.toggleShowCustomCropTypeField(true);
-          } else {
-              addFarmNotifier.toggleShowCustomCropTypeField(false);
-          }
+          // if (newValue == otherCropType) {
+          //     addFarmNotifier.updateIsCropTypeCustom(true);
+          // } else {
+          //   addFarmNotifier.updateIsCropTypeCustom(false);
+          // }
         }
       },
-      items: (filter, infiniteScrollProps) => cropChoices,
-      selectedItem: selectedCropChoices,
+      items: (filter, infiniteScrollProps) => cropChoicesList,
+      selectedItem: addFarmProv.farmModel.crops == '' ? "Select from here" : addFarmProv.farmModel.crops,
       decoratorProps: DropDownDecoratorProps(
         decoration: InputDecoration(
           filled: true,
@@ -1083,17 +1057,19 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
 
   Widget customCropTypeTextField() {
     return Tooltip(
-      message: !showCustomCropTypeField
-          ? "Only available when $otherCropType is\nselected as Crop Type"
+      message: !isCropTypeCustom
+          ? "This Feature is not available yet."
+          // ? "Only available when $otherCropType is\nselected as Crop Type"
           : "",
       textAlign: TextAlign.center,
       child: AbsorbPointer(
-        absorbing: !showCustomCropTypeField,
+        absorbing: !isCropTypeCustom,
         child: TextFormField(
           controller: _customCropType,
           validator: (value) {
-            if ( _cropType.text == otherCropType && (value == null || value.isEmpty)) {
-              return "Please enter Crop Type.";
+            if ((value != null && value.isNotEmpty)) {
+            // if ( _cropType.text == otherCropType && (value == null || value.isEmpty)) {
+              return "Please remove Custom Crop Type.";
             } else {
               return null;
             }
@@ -1128,10 +1104,10 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
             ),
             prefixIcon: const Icon(Icons.grass), // Customize icon
             filled: true,
-            fillColor: showCustomCropTypeField
+            fillColor: isCropTypeCustom
                 ? boxColor
                 : Colors.grey
-                    .withOpacity(0.3), // Background color of the text field
+                    .withAlpha(77), // Background color of the text field
             contentPadding: const EdgeInsets.symmetric(
                 vertical: 16.0,
                 horizontal: 10.0), // Adjust padding to match Dropdown
@@ -1220,9 +1196,8 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Please enter Farm Area";
-                    } else if (!isAcerSelected &&
-                        !isSqMeterSelected &&
-                        !isSqFeetSelected) {
+                    } else if(ref.watch(addFarmProvider).farmModel.areaUnit == ""){
+                    // } else if(!addFarmProv.isSqMeterSelected && !addFarmProv.isSqFeetSelected && !addFarmProv.isSqFeetSelected){
                       return "Please select Area's unit";
                     }
                     return null;
@@ -1285,10 +1260,11 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
                     textFieldsLabels("Sq Meter"),
                     Checkbox(
                       activeColor: borderColor,
-                      value: isSqMeterSelected,
+                      value: ref.watch(addFarmProvider).isEditing ? ref.watch(addFarmProvider).farmModel.areaUnit == "Sq Meter" : addFarmProv.isSqMeterSelected,
                       onChanged: (value) {
                           if (value != null) {
                             addFarmNotifier.toggleIsSqMeterSelected(value);
+                            addFarmNotifier.updateAreaUnit("Sq Meter");
                           }
                           if (value == true) {
                             // Uncheck other checkbox
@@ -1308,10 +1284,11 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
                     textFieldsLabels("Sq Feet"),
                     Checkbox(
                       activeColor: borderColor,
-                      value: isSqFeetSelected,
+                      value: ref.watch(addFarmProvider).isEditing ? ref.watch(addFarmProvider).farmModel.areaUnit == "Sq Feet" : addFarmProv.isSqFeetSelected,
                       onChanged: (value) {
                           if (value != null) {
                             addFarmNotifier.toggleIsSqFeetSelected(value);
+                            addFarmNotifier.updateAreaUnit("Sq Feet");
                           }
                           if (value == true) {
                             // Uncheck other checkbox
@@ -1331,10 +1308,11 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
                     textFieldsLabels("Acers"),
                     Checkbox(
                       activeColor: borderColor,
-                      value: isAcerSelected,
+                      value: ref.watch(addFarmProvider).isEditing ? ref.watch(addFarmProvider).farmModel.areaUnit == "Acers" : addFarmProv.isAcerSelected,
                       onChanged: (value) {
                           if (value != null) {
                             addFarmNotifier.toggleIsAcerSelected(value);
+                            addFarmNotifier.updateAreaUnit("Acers");
                           }
                           if (value == true) {
                             // Uncheck other checkbox
@@ -1397,12 +1375,11 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
       },
       onChanged: (String? newValue) {
         if (newValue != null) {
-            addFarmNotifier.updateSelectedOperationalStatusChoice(newValue);
             addFarmNotifier.updateFarmOperationalStatus(newValue);
         }
       },
-      items: (filter, infiniteScrollProps) => operationalStatus,
-      selectedItem: selectedOperationalStatusChoice,
+      items: (filter, infiniteScrollProps) => operationalStatusList,
+      selectedItem: addFarmProv.farmModel.operationalStatus == '' ? "Select from here" : addFarmProv.farmModel.operationalStatus,
       decoratorProps: DropDownDecoratorProps(
         decoration: InputDecoration(
           filled: true,
@@ -1539,7 +1516,7 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1), // Shadow color
+            color: Colors.black.withAlpha(25), // Shadow color
             spreadRadius: 2,
             blurRadius: 5,
             offset: const Offset(0, 3), // Position of the shadow
@@ -1585,24 +1562,26 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
     );
   }
 
-  ElevatedButton saveDataButton() {
-    return ElevatedButton(
-      onPressed: () {
-        _saveData(); // Call the save image method when the button is pressed
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: buttonColor, // Button color
-        padding: const EdgeInsets.symmetric(
-            horizontal: 100, vertical: 20), // Button padding
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(5), // Rounded corners
+  Widget saveDataButton() {
+    return SizedBox(
+      height: 50,
+      width: 250,
+      child: ElevatedButton(
+        onPressed: () {
+          saveData(); // Call the save image method when the button is pressed
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: buttonColor, // Button color
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(5), // Rounded corners
+          ),
         ),
-      ),
-      child: const Text(
-        "Save Farm", // Button text
-        style: TextStyle(
-          color: Colors.white, // Text color
-          fontSize: 16, // Text size
+        child: isSaving ? const SizedBox(height: 35, width: 35, child: CircularProgressIndicator(color: Colors.white,)) : const Text(
+          "Save Farm", // Button text
+          style: TextStyle(
+            color: Colors.white, // Text color
+            fontSize: 16, // Text size
+          ),
         ),
       ),
     );

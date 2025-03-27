@@ -1,10 +1,10 @@
+import 'dart:convert';
 import 'dart:developer';
-import 'dart:typed_data';
-
+import 'package:aiponics_web_app/controllers/token%20controllers/access_and_refresh_token_controller.dart';
+import 'package:http/http.dart' as http;
+import 'package:aiponics_web_app/api%20information/api_constants.dart';
 import 'package:aiponics_web_app/views/common/header/header_without_farm_dropdown.dart';
 import 'package:aiponics_web_app/views/sideBar%20(%20Drawer%20Screens%20)/teams%20and%20permissions/add_a_team_member.dart';
-import 'package:dotted_border/dotted_border.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -19,6 +19,8 @@ class _AddATeamState extends State<AddATeam> {
   late Color boxColor;
   late Color borderColor;
   late Color boxHeadingColor;
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   TextEditingController teamManagerName = TextEditingController();
   TextEditingController managerEmail = TextEditingController();
@@ -129,6 +131,49 @@ class _AddATeamState extends State<AddATeam> {
     super.dispose();
   }
 
+  void _saveData() async {
+    if (_formKey.currentState!.validate()) {
+
+
+      final url2 = Uri.parse(addTeamApi);
+      String? bearerToken = await fetchAccessToken();  // Replace with your token
+
+      try {
+        final response = await http.post(
+          url2,
+          headers: {
+            'Content-Type': 'application/json',  // Specify that you're sending JSON
+            'Authorization': 'Bearer $bearerToken',  // Adding the Bearer token to the header
+          },
+          body: jsonEncode({
+            "name": teamName.text,
+            "description": teamDescription.text,
+            "farms": [5, 6],
+            "manager": 12
+          }),  // Convert the payload map to a JSON string
+        );
+
+        if (response.statusCode == 201) {
+          // Success
+          log('API Call Success: ${response.body}');
+        } else {
+          // Handle API errors
+          log('Failed to call API: ${response.statusCode}');
+          log('Response Body: ${response.body}');
+        }
+      } catch (e) {
+        log('Request Error: $e');
+      }
+
+
+    } else {
+      // Validation failed, fields will be highlighted
+      log("Validation failed");
+    }
+
+    log("Exiting _saveData");
+  }
+
   @override
   Widget build(BuildContext context) {
     // Define color variables based on the current theme
@@ -152,60 +197,63 @@ class _AddATeamState extends State<AddATeam> {
     final fiveHeight = screenHeight * 0.005681; // Calculate height factor
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: LayoutBuilder(
-          builder: (_, constraints) {
-            final width = MediaQuery.of(context)
-                .size
-                .width; // Get the current width of the screen
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: LayoutBuilder(
+            builder: (_, constraints) {
+              final width = MediaQuery.of(context)
+                  .size
+                  .width; // Get the current width of the screen
 
-            // Check for desktop layout
-            if (constraints.maxWidth >= 900) {
-              return Padding(
-                padding: const EdgeInsets.only(
-                    top: 40,
-                    bottom: 40,
-                    right: 50,
-                    left: 50), // Padding for desktop layout
-                child: desktopDashboard(context, fiveWidth,
-                    fiveHeight), // Call desktop dashboard management method
-              );
-            }
-            // Check for tablet layout
-            else if ((constraints.maxWidth < 900 &&
-                    constraints.maxWidth >= 750) ||
-                width >= 750) {
-              return Padding(
-                padding: const EdgeInsets.only(
-                    top: 40,
-                    bottom: 40,
-                    right: 50,
-                    left: 50), // Padding for tablet layout
-                child: tabletDashboard(
-                    context,
-                    fiveWidth,
-                    fiveHeight,
-                    constraints
-                        .maxWidth), // Call tablet dashboard management method
-              );
-            }
-            // Mobile layout
-            else {
-              return Padding(
-                padding: const EdgeInsets.only(
-                    top: 60,
-                    bottom: 40,
-                    right: 30,
-                    left: 30), // Padding for mobile layout
-                child: mobileDashboard(
-                    context,
-                    fiveWidth,
-                    fiveHeight,
-                    constraints
-                        .maxWidth), // Call mobile dashboard management method
-              );
-            }
-          },
+              // Check for desktop layout
+              if (constraints.maxWidth >= 900) {
+                return Padding(
+                  padding: const EdgeInsets.only(
+                      top: 40,
+                      bottom: 40,
+                      right: 50,
+                      left: 50), // Padding for desktop layout
+                  child: desktopDashboard(context, fiveWidth,
+                      fiveHeight), // Call desktop dashboard management method
+                );
+              }
+              // Check for tablet layout
+              else if ((constraints.maxWidth < 900 &&
+                      constraints.maxWidth >= 750) ||
+                  width >= 750) {
+                return Padding(
+                  padding: const EdgeInsets.only(
+                      top: 40,
+                      bottom: 40,
+                      right: 50,
+                      left: 50), // Padding for tablet layout
+                  child: tabletDashboard(
+                      context,
+                      fiveWidth,
+                      fiveHeight,
+                      constraints
+                          .maxWidth), // Call tablet dashboard management method
+                );
+              }
+              // Mobile layout
+              else {
+                return Padding(
+                  padding: const EdgeInsets.only(
+                      top: 60,
+                      bottom: 40,
+                      right: 30,
+                      left: 30), // Padding for mobile layout
+                  child: mobileDashboard(
+                      context,
+                      fiveWidth,
+                      fiveHeight,
+                      constraints
+                          .maxWidth), // Call mobile dashboard management method
+                );
+              }
+            },
+          ),
         ),
       ),
     );
@@ -728,7 +776,9 @@ class _AddATeamState extends State<AddATeam> {
       height: 48,
       width: 250,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          _saveData();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: borderColor, // Customize the button color
           shape: RoundedRectangleBorder(

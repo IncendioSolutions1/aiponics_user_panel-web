@@ -1,51 +1,32 @@
-import 'package:flutter/material.dart';
+
+
+import 'farm_model.dart';
 
 class AddFarmModel {
-  final TextEditingController farmName;
-  final TextEditingController farmType;
-  final TextEditingController cropType;
-  final TextEditingController customCropType;
-  final TextEditingController farmLocation;
-  final TextEditingController farmOperationalStatus;
-  final TextEditingController farmsArea;
-  final TextEditingController farmsDescription;
+  FarmModel farmModel;
+  bool isEditing;
+
   final List<String> cropChoicesList;
   final List<String> farmTypesList;
-  final List<String> operationalStatusList;
-  final String selectedCropChoices;
-  final String selectedFarmType;
-  final String selectedOperationalStatusChoice;
+  final List<String> operationalChoicesList;
+
   final bool showErrorTextColorOnImage;
   final String imageSelectText;
   final double descriptionFieldHeight;
-  final bool showCustomCropTypeField;
-  final String otherCropType;
+
   final bool isSqMeterSelected;
   final bool isSqFeetSelected;
   final bool isAcerSelected;
 
-
-
   AddFarmModel({
-    required this.farmName,
-    required this.farmType,
-    required this.cropType,
-    required this.customCropType,
-    required this.farmLocation,
-    required this.farmOperationalStatus,
-    required this.farmsArea,
-    required this.farmsDescription,
+    required this.farmModel,
+    required this.isEditing,
     required this.cropChoicesList,
     required this.farmTypesList,
-    required this.operationalStatusList,
-    required this.selectedCropChoices,
-    required this.selectedFarmType,
-    required this.selectedOperationalStatusChoice,
+    required this.operationalChoicesList,
     required this.showErrorTextColorOnImage,
     required this.imageSelectText,
     required this.descriptionFieldHeight,
-    required this.showCustomCropTypeField,
-    required this.otherCropType,
     required this.isSqMeterSelected,
     required this.isSqFeetSelected,
     required this.isAcerSelected,
@@ -53,52 +34,30 @@ class AddFarmModel {
 
   // Add copyWith method for immutability
   AddFarmModel copyWith({
-    TextEditingController? farmName,
-    TextEditingController? farmType,
-    TextEditingController? cropType,
-    TextEditingController? customCropType,
-    TextEditingController? farmLocation,
-    TextEditingController? farmOperationalStatus,
-    TextEditingController? farmsArea,
-    TextEditingController? farmsDescription,
+    FarmModel? farmModel,
     List<String>? cropChoicesList,
     List<String>? farmTypesList,
-    List<String>? operationalStatusList,
-    String? selectedCropChoices,
-    String? selectedFarmType,
-    String? selectedOperationalStatusChoice,
+    List<String>? operationalChoicesList,
     bool? showErrorTextColorOnImage,
     String? imageSelectText,
     double? descriptionFieldHeight,
-    bool? showCustomCropTypeField,
-    String? otherCropType,
     bool? isSqMeterSelected,
     bool? isSqFeetSelected,
     bool? isAcerSelected,
+    bool? isEditing,
   }) {
     return AddFarmModel(
-      farmName: farmName ?? this.farmName,
-      farmType: farmType ?? this.farmType,
-      cropType: cropType ?? this.cropType,
-      customCropType: customCropType ?? this.customCropType,
-      farmLocation: farmLocation ?? this.farmLocation,
-      farmOperationalStatus: farmOperationalStatus ?? this.farmOperationalStatus,
-      farmsArea: farmsArea ?? this.farmsArea,
-      farmsDescription: farmsDescription ?? this.farmsDescription,
+      farmModel: farmModel ?? this.farmModel,
       cropChoicesList: cropChoicesList ?? this.cropChoicesList,
       farmTypesList: farmTypesList ?? this.farmTypesList,
-      operationalStatusList: operationalStatusList ?? this.operationalStatusList,
-      selectedCropChoices: selectedCropChoices ?? this.selectedCropChoices,
-      selectedFarmType: selectedFarmType ?? this.selectedFarmType,
-      selectedOperationalStatusChoice: selectedOperationalStatusChoice ?? this.selectedOperationalStatusChoice,
+      operationalChoicesList: operationalChoicesList ?? this.operationalChoicesList,
       showErrorTextColorOnImage: showErrorTextColorOnImage ?? this.showErrorTextColorOnImage,
       imageSelectText: imageSelectText ?? this.imageSelectText,
       descriptionFieldHeight: descriptionFieldHeight ?? this.descriptionFieldHeight,
-      showCustomCropTypeField: showCustomCropTypeField ?? this.showCustomCropTypeField,
-      otherCropType: otherCropType ?? this.otherCropType,
       isSqMeterSelected: isSqMeterSelected ?? this.isSqMeterSelected,
       isSqFeetSelected: isSqFeetSelected ?? this.isSqFeetSelected,
       isAcerSelected: isAcerSelected ?? this.isAcerSelected,
+      isEditing: isEditing ?? this.isEditing,
     );
   }
 }

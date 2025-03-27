@@ -16,6 +16,8 @@ class DashboardInfoModel {
   final String? selectedDevice;
   final DateTime? selectedDate;
   final List<Map<double, double>?>? tdsValues;
+  final List<String>? gaugesNames;
+  final Map<String, dynamic>? gaugesToShow;
 
   DashboardInfoModel({
     this.farmTemperature,
@@ -34,6 +36,8 @@ class DashboardInfoModel {
     this.selectedDevice,
     this.selectedDate,
     this.tdsValues,
+    required this.gaugesNames,
+    this.gaugesToShow,
   });
 
   // Add copyWith method for immutability
@@ -54,6 +58,8 @@ class DashboardInfoModel {
     final String? selectedDevice,
     final DateTime? selectedDate,
     final List<Map<double, double>?>? tdsValues,
+    List<String>? gaugesNames,
+    final Map<String, dynamic>? gaugesToShow,
   }) {
     return DashboardInfoModel(
       farmTemperature: farmTemperature ?? this.farmTemperature,
@@ -72,6 +78,8 @@ class DashboardInfoModel {
       selectedDevice: selectedDevice ?? this.selectedDevice,
       selectedDate: selectedDate ?? this.selectedDate,
       tdsValues: tdsValues ?? this.tdsValues,
+      gaugesNames: gaugesNames ?? this.gaugesNames,
+      gaugesToShow: gaugesToShow ?? this.gaugesToShow,
     );
   }
 

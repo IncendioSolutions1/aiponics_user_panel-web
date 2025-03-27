@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer' as dev;
 import 'package:aiponics_web_app/provider/colors%20and%20theme%20provider/color_scheme_provider.dart';
 import 'package:aiponics_web_app/provider/dashboard%20management%20provider/dashboard_screen_info_provider.dart';
@@ -9,7 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
+import '../../../../controllers/farm and device controller/device_controller.dart';
 
 class AddDevice extends ConsumerStatefulWidget {
   const AddDevice({super.key});
@@ -36,23 +35,9 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
 
   late ThemeColors themeColors;
 
-  late bool _acquiredThroughUs;
-  late bool _userOwnDevice;
-
   final double _spaceBetweenTwoFields = 20;
   final double _spaceBetweenLabelAndTextField = 15;
   final double _spaceBetweenTwoTextFieldsRows = 30;
-
-  late TextEditingController _deviceName = TextEditingController();
-  late TextEditingController _farm = TextEditingController();
-  late TextEditingController _noOfFans = TextEditingController();
-  late TextEditingController _noOfPumps = TextEditingController();
-  late TextEditingController _noOfLights = TextEditingController();
-  late TextEditingController _noOfCoolingPumps = TextEditingController();
-  late TextEditingController _noOfMistingPumps = TextEditingController();
-  late TextEditingController _waterTankSize = TextEditingController();
-  late TextEditingController _deviceEmei = TextEditingController();
-  late TextEditingController _deviceType = TextEditingController();
 
   // Labels for making scalable
   String deviceAcquisitionLabel = "Device Acquisition Method";
@@ -60,7 +45,7 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
   String deviceNameLabel = "Device Name";
   String noOfFansLabel = "No Of Fans";
   String noOfPumpsLabel = "No Of Water Pumps";
-  String noOfMistingPumpsLabel = "No Of Misting Pumps";
+  String noOfHumiditySensorsLabel = "No Of Humidity Sensors";
   String noOfCoolingPumpsLabel = "No Of Cooling Pumps";
   String noOfLightsLabel = "No Of Lights";
   String sizeOfWaterTankLabel = "Size Of Water Tank in ( liters )";
@@ -69,6 +54,24 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
   String airParametersLabel = "Air Parameters";
   String soilParametersLabel = "Soil Parameters";
 
+  final String climateControlSystem = 'Monitoring';
+  final String dosingSystem = 'Dosing';
+  final String conventionalSystem = 'Conventional';
+
+  final String farmType = "Open Farms";
+  final String openFarm = "Open Farm";
+  final String itemToDisable = 'Monitoring';
+
+  final TextEditingController _deviceName = TextEditingController();
+  final TextEditingController _farm = TextEditingController();
+  final TextEditingController _noOfFans = TextEditingController();
+  final TextEditingController _noOfPumps = TextEditingController();
+  final TextEditingController _noOfLights = TextEditingController();
+  final TextEditingController _noOfCoolingPumps = TextEditingController();
+  final TextEditingController _noOfHumiditySensors = TextEditingController();
+  final TextEditingController _waterTankSize = TextEditingController();
+  final TextEditingController _deviceEmei = TextEditingController();
+  final TextEditingController _deviceType = TextEditingController();
 
   late List<String> _airParametersTypesList = [];
   late List<IconData> _airParametersIconsList = [];
@@ -77,67 +80,51 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
   late List<IconData> _soilParametersIconsList = [];
   Map<String, bool> _soilCheckboxValues = {};
   late List<String> _devicesTypesList = [];
-  late List<String> _farmTypesList = [];
-  
-  late String climateControlSystem;
-  late String dosingSystem;
-  late String conventionalSystem;
+  late Map<int, String> _farmTypesList = {};
 
-  String farmType = "";
-  String openFarm = "";
-  String itemToDisable = "";
+  late bool _acquiredThroughUs;
+  late bool _userOwnDevice;
 
-  dynamic addDeviceProv;
-  dynamic addDeviceNotifier;
-
+  late AddDeviceNotifier addDeviceNotifier;
 
   void _saveData() async {
-    if (_formKey.currentState!.validate() &&
-        (_acquiredThroughUs || _userOwnDevice)) {
-
-      Map<String, dynamic> dataToSend = {};
-
-      if (_acquiredThroughUs) {
-
-        if (_deviceType.text == 'Dosing System') {
-
-          dataToSend["device_type"] = _deviceType.text;
-          dataToSend["imei_or_api_key"] = _deviceEmei.text;
-          dataToSend["farm"] = 1;
-          dataToSend["water_tank_size"] = double.parse(_waterTankSize.text);
-          dataToSend["name"] = _deviceName.text;
-        }
-
-      } else if (_userOwnDevice) {
-
-        if (_deviceType.text == 'Dosing System') {
-
-          dataToSend["device_type"] = _deviceType.text;
-          dataToSend["imei_or_api_key"] = "not given yet";
-          dataToSend["farm"] = "1";
-          dataToSend["water_tank_size"] = _waterTankSize.text;
-          dataToSend["name"] = _deviceName.text;
-        }
-
+    if (_formKey.currentState!.validate() && (_acquiredThroughUs || _userOwnDevice)) {
+      if (ref.watch(addDeviceProvider).acquiredThroughUs) {
+        ref.read(addDeviceProvider.notifier).updateDeviceModel(imeiOrApiKey: _deviceEmei.text);
       }
 
-      final url2 = Uri.parse("http://192.168.10.13:8000/api/users/device/");
+      ref.read(addDeviceProvider.notifier).updateDeviceModel(name: _deviceName.text);
 
-      final registerResponse2 = await http.post(
-        url2,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: json.encode(dataToSend),
-      );
-
-      if (registerResponse2.statusCode == 200) {
-        dev.log("Response send to ADD DEVICE");
-        dev.log("Api Reply  ${registerResponse2.body}");
-      } else {
-        dev.log("Response error ${registerResponse2.statusCode}");
-        dev.log("Response error ${registerResponse2.body}");
+      if (ref.watch(addDeviceProvider).deviceModel.deviceType == dosingSystem) {
+        ref
+            .read(addDeviceProvider.notifier)
+            .updateDeviceModel(waterTankSize: int.tryParse(_waterTankSize.text));
+      } else if (ref.watch(addDeviceProvider).deviceModel.deviceType == climateControlSystem) {
+        ref
+            .read(addDeviceProvider.notifier)
+            .updateDeviceModel(numFans: int.tryParse(_noOfFans.text));
+        ref
+            .read(addDeviceProvider.notifier)
+            .updateDeviceModel(numLights: int.tryParse(_noOfLights.text));
+        ref
+            .read(addDeviceProvider.notifier)
+            .updateDeviceModel(numWaterSupplyPumps: int.tryParse(_noOfPumps.text));
+        ref
+            .read(addDeviceProvider.notifier)
+            .updateDeviceModel(numHumiditySensors: int.tryParse(_noOfHumiditySensors.text));
+        ref
+            .read(addDeviceProvider.notifier)
+            .updateDeviceModel(numCoolingPumps: int.tryParse(_noOfCoolingPumps.text));
       }
+
+      if(ref.watch(addDeviceProvider).isEditing){
+        bool status = await DeviceService.updateDeviceToServer(
+            ref, dosingSystem, climateControlSystem, conventionalSystem);
+      }else{
+        bool status = await DeviceService.addDeviceToServer(
+            ref, dosingSystem, climateControlSystem, conventionalSystem);
+      }
+
     } else {
       // Validation failed, fields will be highlighted
       dev.log("Validation failed");
@@ -148,15 +135,23 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
 
   @override
   void initState() {
+    addDeviceNotifier = ref.read(addDeviceProvider.notifier);
+    _airParametersTypesList = ref.read(addDeviceProvider).airParametersTypesList;
+    _airParametersIconsList = ref.read(addDeviceProvider).airParametersIconsList;
+    _soilParametersTypesList = ref.read(addDeviceProvider).soilParametersTypesList;
+    _soilParametersIconsList = ref.read(addDeviceProvider).soilParametersIconsList;
+    _devicesTypesList = ref.read(addDeviceProvider).devicesTypesList;
+
+
     super.initState();
   }
 
   @override
   void dispose() {
     // Delay provider modification until after the widget tree builds
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   addDeviceProv.resetAddDeviceProvider();
-    // });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(addDeviceProvider.notifier).resetAddDeviceProvider();
+    });
     super.dispose();
   }
 
@@ -179,13 +174,16 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
     width = displayNotifier['screenFullWidth'];
     contexts = context;
 
-
     super.didChangeDependencies();
+  }
+
+  String capitalizeFirstLetter(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
   }
 
   @override
   Widget build(BuildContext context) {
-
     final displayNotifier = ref.watch(dashboardScreenInfoProvider);
 
     screenResponsiveness = displayNotifier['screenResponsiveness'];
@@ -194,45 +192,43 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
     width = displayNotifier['screenFullWidth'];
     contexts = context;
 
+      if (ref.read(addDeviceProvider).isEditing) {
+        dev.log("inside if");
+        _deviceName.text = ref.watch(addDeviceProvider).deviceModel.name;
+        _deviceType.text = capitalizeFirstLetter(ref.watch(addDeviceProvider).deviceModel.deviceType);
+        _deviceEmei.text = ref.watch(addDeviceProvider).deviceModel.imeiOrApiKey;
+        _farm.text = ref.watch(addDeviceProvider).farmTypesList[ref.watch(addDeviceProvider).deviceModel.farm] ?? "";
 
-    addDeviceProv = ref.read(addDeviceProvider.notifier);
+        if (ref.watch(addDeviceProvider).deviceModel.imeiOrApiKey.isNotEmpty) {
+          _acquiredThroughUs = true;
+          _userOwnDevice = false;
+        } else {
+          _acquiredThroughUs = false;
+          _userOwnDevice = true;
+        }
 
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    addDeviceNotifier = ref.watch(addDeviceProvider);
+        if(capitalizeFirstLetter(ref.watch(addDeviceProvider).deviceModel.deviceType) == conventionalSystem){
+          _airCheckboxValues = ref.watch(addDeviceProvider).airCheckboxValues;
+          _soilCheckboxValues = ref.watch(addDeviceProvider).soilCheckboxValues;
+        }else{
+        _noOfFans.text = ref.watch(addDeviceProvider).deviceModel.numFans.toString();
+        _noOfPumps.text = ref.watch(addDeviceProvider).deviceModel.numWaterSupplyPumps.toString();
+        _noOfHumiditySensors.text = ref.watch(addDeviceProvider).deviceModel.numHumiditySensors.toString();
+        _noOfCoolingPumps.text = ref.watch(addDeviceProvider).deviceModel.numCoolingPumps.toString();
+        _noOfLights.text = ref.watch(addDeviceProvider).deviceModel.numLights.toString();
+        _waterTankSize.text = ref.watch(addDeviceProvider).deviceModel.waterTankSize.toString();
+        }
 
-    _acquiredThroughUs = addDeviceNotifier.acquiredThroughUs;
-    _userOwnDevice = addDeviceNotifier.userOwnDevice;
+      } else {
+        _acquiredThroughUs = ref.watch(addDeviceProvider).acquiredThroughUs;
+        _userOwnDevice = ref.watch(addDeviceProvider).userOwnDevice;
+        _airCheckboxValues = ref.watch(addDeviceProvider).airCheckboxValues;
+        _soilCheckboxValues = ref.watch(addDeviceProvider).soilCheckboxValues;
+      }
 
-    climateControlSystem = addDeviceNotifier.climateControlSystem;
-    dosingSystem = addDeviceNotifier.dosingSystem;
-    conventionalSystem = addDeviceNotifier.conventionalSystem;
 
-    _airCheckboxValues = addDeviceNotifier.airCheckboxValues;
-    _soilCheckboxValues = addDeviceNotifier.soilCheckboxValues;
 
-    _airParametersTypesList = addDeviceNotifier.airParametersTypesList;
-    _airParametersIconsList = addDeviceNotifier.airParametersIconsList;
-    _soilParametersTypesList = addDeviceNotifier.soilParametersTypesList;
-    _soilParametersIconsList = addDeviceNotifier.soilParametersIconsList;
-
-    _deviceName = addDeviceNotifier.deviceName;
-    _farm = addDeviceNotifier.farm;
-    _noOfFans = addDeviceNotifier.noOfFans;
-    _noOfPumps = addDeviceNotifier.noOfPumps;
-    _noOfLights = addDeviceNotifier.noOfLights;
-    _noOfCoolingPumps = addDeviceNotifier.noOfCoolingPumps;
-    _noOfMistingPumps = addDeviceNotifier.noOfMistingPumps;
-    _waterTankSize = addDeviceNotifier.waterTankSize;
-    _deviceEmei = addDeviceNotifier.deviceEmei;
-    _deviceType = addDeviceNotifier.parameter;
-
-    _devicesTypesList = addDeviceNotifier.devicesTypesList;
-    _farmTypesList = addDeviceNotifier.farmTypesList;
-
-    farmType = addDeviceNotifier.farmType;
-    openFarm = addDeviceNotifier.openFarm;
-    itemToDisable = addDeviceNotifier.itemToDisable;
-    // });
+    _farmTypesList = ref.watch(addDeviceProvider).farmTypesList;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -241,21 +237,18 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
           key: _formKey,
           child: screenResponsiveness == 'desktop'
               ? Padding(
-            padding: const EdgeInsets.only(
-                top: 40, bottom: 40, right: 50, left: 50),
-            child: desktopDashboard(),
-          )
+                  padding: const EdgeInsets.only(top: 40, bottom: 40, right: 50, left: 50),
+                  child: desktopDashboard(),
+                )
               : screenResponsiveness == 'tablet'
-              ? Padding(
-            padding: const EdgeInsets.only(
-                top: 40, bottom: 40, right: 50, left: 50),
-            child: tabletDashboard(),
-          )
-              : Padding(
-            padding: const EdgeInsets.only(
-                top: 40, bottom: 40, right: 50, left: 50),
-            child: mobileDashboard(),
-          ),
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 40, bottom: 40, right: 50, left: 50),
+                      child: tabletDashboard(),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.only(top: 40, bottom: 40, right: 50, left: 50),
+                      child: mobileDashboard(),
+                    ),
         ),
       ),
     );
@@ -266,9 +259,8 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-
-        const CustomHeaderWithoutFarmDropdown(mainPageHeading: "Welcome", subHeading: "Add a Device"),
-
+        const CustomHeaderWithoutFarmDropdown(
+            mainPageHeading: "Welcome", subHeading: "Add a Device"),
         Container(
           width: double.infinity, // Ensures it takes up available width
           padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
@@ -285,7 +277,6 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
             mainAxisAlignment: MainAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-
               welcomeHeader(30),
 
               const SizedBox(
@@ -318,7 +309,9 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
               ),
 
               // If device is acquired by us then show Emei text field
-              if (_acquiredThroughUs && _farm.text != "Select Farm here" && _farm.text.isNotEmpty) ...[
+              if (_acquiredThroughUs &&
+                  _farm.text != "Select Farm here" &&
+                  _farm.text.isNotEmpty) ...[
                 // Device Emei and Device Type Fields
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,34 +346,27 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                       child: selectDeviceTypesDropDown(),
                     ),
 
-                    if(_deviceType.text == dosingSystem)...[
+                    if (_deviceType.text == dosingSystem) ...[
                       // Width Spacer
                       SizedBox(
                         width: _spaceBetweenTwoFields,
                       ),
                       // Water Tank Size
-                      Flexible(
-                        flex: 1,
-                        child: waterTankSizeTextField()
-                      ),
+                      Flexible(flex: 1, child: waterTankSizeTextField()),
                     ],
 
-                    if(_deviceType.text == conventionalSystem)...[
+                    if (_deviceType.text == climateControlSystem) ...[
                       // Width Spacer
                       SizedBox(
                         width: _spaceBetweenTwoFields,
                       ),
                       // no of fans
-                      Flexible(
-                          flex: 1,
-                          child: noOfFansTextField()
-                      ),
+                      Flexible(flex: 1, child: noOfFansTextField()),
                     ],
-
                   ],
                 ),
 
-                if(_deviceType.text == conventionalSystem)...[
+                if (_deviceType.text == climateControlSystem) ...[
                   SizedBox(
                     height: _spaceBetweenTwoTextFieldsRows,
                   ),
@@ -388,19 +374,13 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // no of lights
-                      Flexible(
-                        flex: 1,
-                        child: noOfLightsTextField()
-                      ),
+                      Flexible(flex: 1, child: noOfLightsTextField()),
                       // Width Spacer
                       SizedBox(
                         width: _spaceBetweenTwoFields,
                       ),
                       // no of water pumps
-                      Flexible(
-                        flex: 1,
-                        child: noOfWaterPumpsTextField()
-                      ),
+                      Flexible(flex: 1, child: noOfWaterPumpsTextField()),
                     ],
                   ),
                   SizedBox(
@@ -410,30 +390,23 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // no of misting pumps
-                      Flexible(
-                        flex: 1,
-                        child: noOfMistingPumpsTextField()
-                      ),
+                      Flexible(flex: 1, child: noOfHumiditySensorsTextField()),
                       // Width Spacer
                       SizedBox(
                         width: _spaceBetweenTwoFields,
                       ),
                       // no of cooling pumps
-                      Flexible(
-                          flex: 1,
-                          child: noOfCoolingPumpsTextField()
-                      ),
+                      Flexible(flex: 1, child: noOfCoolingPumpsTextField()),
                     ],
                   ),
                 ],
 
-                if(_deviceType.text == climateControlSystem)...[
+                if (_deviceType.text == conventionalSystem) ...[
                   SizedBox(
                     height: _spaceBetweenTwoTextFieldsRows,
                   ),
                   selectSoilAndAirParameterTypeGrid(),
                 ],
-
               ],
 
               // If device is users own device then don't show Emei text field
@@ -459,83 +432,69 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                   ],
                 ),
 
-                if(_deviceType.text == dosingSystem)...[
+                if (_deviceType.text == dosingSystem) ...[
                   SizedBox(
                     height: _spaceBetweenTwoTextFieldsRows,
                   ),
-                      // Water Tank Size
+                  // Water Tank Size
                   waterTankSizeTextField(),
                 ],
 
-                if(_deviceType.text == conventionalSystem)...[
+                if (_deviceType.text == climateControlSystem) ...[
+                  SizedBox(
+                    height: _spaceBetweenTwoTextFieldsRows,
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // no of lights
+                      Flexible(flex: 1, child: noOfLightsTextField()),
+                      // Width Spacer
                       SizedBox(
-                        height: _spaceBetweenTwoTextFieldsRows,
+                        width: _spaceBetweenTwoFields,
                       ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // no of lights
-                          Flexible(
-                              flex: 1,
-                              child: noOfLightsTextField()
-                          ),
-                          // Width Spacer
-                          SizedBox(
-                            width: _spaceBetweenTwoFields,
-                          ),
-                          // no of water pumps
-                          Flexible(
-                              flex: 1,
-                              child: noOfWaterPumpsTextField()
-                          ),
-                        ],
-                      ),
-                      SizedBox(
-                        height: _spaceBetweenTwoTextFieldsRows,
-                      ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // no of misting pumps
-                          Flexible(
-                              flex: 1,
-                              child: noOfMistingPumpsTextField()
-                          ),
-                          // Width Spacer
-                          SizedBox(
-                            width: _spaceBetweenTwoFields,
-                          ),
-                          // no of cooling pumps
-                          Flexible(
-                              flex: 1,
-                              child: noOfCoolingPumpsTextField()
-                          ),
-                        ],
-                      ),
-                      // height Spacer
-                      SizedBox(
-                        height: _spaceBetweenTwoTextFieldsRows,
-                      ),
-                      // no of fans
-                      noOfFansTextField(),
+                      // no of water pumps
+                      Flexible(flex: 1, child: noOfWaterPumpsTextField()),
                     ],
+                  ),
+                  SizedBox(
+                    height: _spaceBetweenTwoTextFieldsRows,
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // no of misting pumps
+                      Flexible(flex: 1, child: noOfHumiditySensorsTextField()),
+                      // Width Spacer
+                      SizedBox(
+                        width: _spaceBetweenTwoFields,
+                      ),
+                      // no of cooling pumps
+                      Flexible(flex: 1, child: noOfCoolingPumpsTextField()),
+                    ],
+                  ),
+                  // height Spacer
+                  SizedBox(
+                    height: _spaceBetweenTwoTextFieldsRows,
+                  ),
+                  // no of fans
+                  noOfFansTextField(),
+                ],
 
-                if(_deviceType.text == climateControlSystem)...[
+                if (_deviceType.text == conventionalSystem) ...[
                   SizedBox(
                     height: _spaceBetweenTwoTextFieldsRows,
                   ),
                   selectSoilAndAirParameterTypeGrid(),
                 ],
-
               ],
 
-                SizedBox(
-                  height: _spaceBetweenTwoTextFieldsRows,
-                ),
-                Center(
-                  child: saveDataButton("mobile"),
-                ),
-
+              SizedBox(
+                height: _spaceBetweenTwoTextFieldsRows,
+              ),
+              Center(
+                child: saveDataButton("mobile"),
+              ),
             ],
           ),
         ),
@@ -548,7 +507,8 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        const CustomHeaderWithoutFarmDropdown(mainPageHeading: "Welcome", subHeading: "Add a Device"),
+        const CustomHeaderWithoutFarmDropdown(
+            mainPageHeading: "Welcome", subHeading: "Add a Device"),
         Container(
           width: width,
           padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
@@ -735,9 +695,7 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                 ]
               ],
 
-
-              if (_deviceType.text == climateControlSystem &&
-                  _acquiredThroughUs == false) ...[
+              if (_deviceType.text == climateControlSystem && _acquiredThroughUs == false) ...[
                 SizedBox(
                   height: _spaceBetweenTwoTextFieldsRows,
                 ),
@@ -769,19 +727,18 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          textFieldsLabelsRequired(noOfMistingPumpsLabel, 17),
+                          textFieldsLabelsRequired(noOfHumiditySensorsLabel, 17),
                           SizedBox(
                             height: _spaceBetweenLabelAndTextField,
                           ),
-                          noOfMistingPumpsTextField(),
+                          noOfHumiditySensorsTextField(),
                         ],
                       ),
                     ),
                   ],
                 ),
-              ]else if (_deviceType.text == climateControlSystem &&
+              ] else if (_deviceType.text == climateControlSystem &&
                   _acquiredThroughUs == true) ...[
-
                 SizedBox(
                   height: _spaceBetweenTwoTextFieldsRows,
                 ),
@@ -834,17 +791,14 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    textFieldsLabelsRequired(noOfMistingPumpsLabel, 17),
+                    textFieldsLabelsRequired(noOfHumiditySensorsLabel, 17),
                     SizedBox(
                       height: _spaceBetweenLabelAndTextField,
                     ),
-                    noOfMistingPumpsTextField(),
+                    noOfHumiditySensorsTextField(),
                   ],
                 ),
-
-              ] else if (_deviceType.text == dosingSystem &&
-                  _acquiredThroughUs == true) ...[
-
+              ] else if (_deviceType.text == dosingSystem && _acquiredThroughUs == true) ...[
                 SizedBox(
                   height: _spaceBetweenTwoTextFieldsRows,
                 ),
@@ -861,23 +815,19 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                     waterTankSizeTextField(),
                   ],
                 ),
-
-              ] else if (_deviceType.text == conventionalSystem &&
-                  _acquiredThroughUs == true) ...[
+              ] else if (_deviceType.text == conventionalSystem && _acquiredThroughUs == true) ...[
                 SizedBox(
                   height: _spaceBetweenTwoTextFieldsRows,
                 ),
                 selectSoilAndAirParameterTypeGrid(),
               ],
 
-
-                SizedBox(
-                  height: _spaceBetweenTwoTextFieldsRows,
-                ),
-                Center(
-                  child: saveDataButton("tablet"),
-                ),
-
+              SizedBox(
+                height: _spaceBetweenTwoTextFieldsRows,
+              ),
+              Center(
+                child: saveDataButton("tablet"),
+              ),
             ],
           ),
         ),
@@ -890,7 +840,8 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        const CustomHeaderWithoutFarmDropdown(mainPageHeading: "Welcome", subHeading: "Add a Device"),
+        const CustomHeaderWithoutFarmDropdown(
+            mainPageHeading: "Welcome", subHeading: "Add a Device"),
         Container(
           width: width,
           padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
@@ -994,7 +945,6 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                 // device parameter type dropdown field. ( only of the
                 // condition will be true at each time ).
                 if (_deviceType.text == conventionalSystem) ...[
-
                   SizedBox(
                     height: _spaceBetweenTwoTextFieldsRows,
                   ),
@@ -1009,7 +959,6 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                       selectSoilAndAirParameterTypeGrid(),
                     ],
                   ),
-
                 ] else if (_deviceType.text == dosingSystem) ...[
                   SizedBox(
                     height: _spaceBetweenTwoTextFieldsRows,
@@ -1045,13 +994,10 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                 ],
               ],
 
-
-              if (_deviceType.text == climateControlSystem &&
-                  _acquiredThroughUs == false) ...[
-
-                    SizedBox(
-                      height: _spaceBetweenTwoTextFieldsRows,
-                    ),
+              if (_deviceType.text == climateControlSystem && _acquiredThroughUs == false) ...[
+                SizedBox(
+                  height: _spaceBetweenTwoTextFieldsRows,
+                ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -1071,17 +1017,15 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    textFieldsLabelsRequired(noOfMistingPumpsLabel, 14),
+                    textFieldsLabelsRequired(noOfHumiditySensorsLabel, 14),
                     SizedBox(
                       height: _spaceBetweenLabelAndTextField,
                     ),
-                    noOfMistingPumpsTextField(),
+                    noOfHumiditySensorsTextField(),
                   ],
                 ),
-
-              ]else if (_deviceType.text == climateControlSystem &&
+              ] else if (_deviceType.text == climateControlSystem &&
                   _acquiredThroughUs == true) ...[
-
                 SizedBox(
                   height: _spaceBetweenTwoTextFieldsRows,
                 ),
@@ -1122,17 +1066,14 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    textFieldsLabelsRequired(noOfMistingPumpsLabel, 14),
+                    textFieldsLabelsRequired(noOfHumiditySensorsLabel, 14),
                     SizedBox(
                       height: _spaceBetweenLabelAndTextField,
                     ),
-                    noOfMistingPumpsTextField(),
+                    noOfHumiditySensorsTextField(),
                   ],
                 ),
-
-              ] else if (_deviceType.text == dosingSystem &&
-                  _acquiredThroughUs == true) ...[
-
+              ] else if (_deviceType.text == dosingSystem && _acquiredThroughUs == true) ...[
                 SizedBox(
                   height: _spaceBetweenTwoTextFieldsRows,
                 ),
@@ -1149,23 +1090,19 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                     waterTankSizeTextField(),
                   ],
                 ),
-
-              ] else if (_deviceType.text == conventionalSystem &&
-                  _acquiredThroughUs == true) ...[
+              ] else if (_deviceType.text == conventionalSystem && _acquiredThroughUs == true) ...[
                 SizedBox(
                   height: _spaceBetweenTwoTextFieldsRows,
                 ),
                 selectSoilAndAirParameterTypeGrid(),
               ],
 
-
-                SizedBox(
-                  height: _spaceBetweenTwoTextFieldsRows,
-                ),
-                Center(
-                  child: saveDataButton("mobile"),
-                ),
-
+              SizedBox(
+                height: _spaceBetweenTwoTextFieldsRows,
+              ),
+              Center(
+                child: saveDataButton("mobile"),
+              ),
             ],
           ),
         ),
@@ -1245,64 +1182,14 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
   Widget deviceGettingInformationCheckBoxes() {
     if (screenResponsiveness == "desktop") {
       return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-        textFieldsLabelsRequired(deviceAcquisitionLabel, 18),
-        SizedBox(
-          height: _spaceBetweenLabelAndTextField,
-        ),
-            Row(
-                children: [
-                  Row(
-                    children: [
-                      Checkbox(
-                        activeColor: borderColor,
-                        value: _acquiredThroughUs,
-                        onChanged: (value) {
-                          if (value != null) {
-                            addDeviceProv.updateAcquiredThroughUs(value);
-                          }
-                          if (value == true) {
-                            addDeviceProv.updateUserOwnDevice(false);
-                            addDeviceProv.updateParameter("");
-                          }
-                        },
-                      ),
-                      Text(
-                        'AiPonics Device',
-                        style: TextStyle(fontSize: 16, color: boxHeadingColor),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 15),
-                  Row(
-                    children: [
-                      Checkbox(
-                        activeColor: borderColor,
-                        value: _userOwnDevice,
-                        onChanged: (value) {
-                          if (value != null) {
-                            addDeviceProv.updateUserOwnDevice(value);
-                          }
-                          if (value == true) {
-                            addDeviceProv.updateAcquiredThroughUs(false);
-                            addDeviceProv.updateParameter("");
-                          }
-                        },
-                      ),
-                      Text(
-                        "User's Device",
-                        style: TextStyle(fontSize: 16, color: boxHeadingColor),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-          ],
-        );
-    } else {
-      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          textFieldsLabelsRequired(deviceAcquisitionLabel, 18),
+          SizedBox(
+            height: _spaceBetweenLabelAndTextField,
+          ),
+          Row(
             children: [
               Row(
                 children: [
@@ -1311,11 +1198,10 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                     value: _acquiredThroughUs,
                     onChanged: (value) {
                       if (value != null) {
-                        addDeviceProv.updateAcquiredThroughUs(value);
+                        addDeviceNotifier.updateAcquiredThroughUs(value);
                       }
                       if (value == true) {
-                        addDeviceProv.updateUserOwnDevice(false);
-                        addDeviceProv.updateParameter("");
+                        addDeviceNotifier.updateUserOwnDevice(false);
                       }
                     },
                   ),
@@ -1333,11 +1219,10 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                     value: _userOwnDevice,
                     onChanged: (value) {
                       if (value != null) {
-                        addDeviceProv.updateUserOwnDevice(value);
+                        addDeviceNotifier.updateUserOwnDevice(value);
                       }
                       if (value == true) {
-                        addDeviceProv.updateAcquiredThroughUs(false);
-                        addDeviceProv.updateParameter("");
+                        addDeviceNotifier.updateAcquiredThroughUs(false);
                       }
                     },
                   ),
@@ -1348,92 +1233,151 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                 ],
               ),
             ],
-          );
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Checkbox(
+                activeColor: borderColor,
+                value: _acquiredThroughUs,
+                onChanged: (value) {
+                  if (value != null) {
+                    addDeviceNotifier.updateAcquiredThroughUs(value);
+                  }
+                  if (value == true) {
+                    addDeviceNotifier.updateUserOwnDevice(false);
+                  }
+                },
+              ),
+              Text(
+                'AiPonics Device',
+                style: TextStyle(fontSize: 16, color: boxHeadingColor),
+              ),
+            ],
+          ),
+          const SizedBox(width: 15),
+          Row(
+            children: [
+              Checkbox(
+                activeColor: borderColor,
+                value: _userOwnDevice,
+                onChanged: (value) {
+                  if (value != null) {
+                    addDeviceNotifier.updateUserOwnDevice(value);
+                  }
+                  if (value == true) {
+                    addDeviceNotifier.updateAcquiredThroughUs(false);
+                  }
+                },
+              ),
+              Text(
+                "User's Device",
+                style: TextStyle(fontSize: 16, color: boxHeadingColor),
+              ),
+            ],
+          ),
+        ],
+      );
     }
   }
 
   Widget selectFarmDropDown() {
-    return
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
         textFieldsLabelsRequired(farmNameLabel, 18),
         SizedBox(
           height: _spaceBetweenLabelAndTextField,
         ),
-        DropdownSearch<String>(
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return "Please Select Farm from dropdown";
-            } else if (value == "Select Farm here" || value == "") {
-              return "Please Select Farm from dropdown";
-            } else {
-              return null;
-            }
-          },
-          onChanged: (String? newValue) {
-              if (newValue != null) {
-                addDeviceProv.updateFarm(newValue);
-              }
-          },
-          items: (filter, infiniteScrollProps) => _farmTypesList,
-          selectedItem: _farm.text.isNotEmpty ? _farm.text : "Select Farm here",
-          decoratorProps: DropDownDecoratorProps(
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: boxColor,
-              labelText: "Select Farm here",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  color: borderColor,
-                  width: 1,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  color: borderColor,
-                  width: 1,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  color: borderColor,
-                  width: 1,
-                ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                  vertical: 15.0,
-                  horizontal: 10.0), // Adjust padding to match TextField
-            ),
-          ),
-          popupProps: PopupProps.menu(
-            fit: FlexFit.loose,
-            constraints: const BoxConstraints(maxHeight: 300),
-            menuProps: const MenuProps(
-              backgroundColor: Colors.white,
-              elevation: 8,
-            ),
-            itemBuilder: (context, item, isSelected, boolAgain) {
-              return Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.green : Colors.white,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: Text(
-                  item,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
+        ref.watch(addDeviceProvider).areFarmsLoading
+            ? const Center(
+                child: SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: CircularProgressIndicator(
+                      color: Colors.green,
+                    )))
+            : ref.watch(addDeviceProvider).farmTypesList.isEmpty
+                ? const Text("No farms found. Add farms 1st to add device.")
+                : DropdownSearch<String>(
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Please Select Farm from dropdown";
+                      } else if (value == "Select Farm here" || value == "") {
+                        return "Please Select Farm from dropdown";
+                      } else {
+                        return null;
+                      }
+                    },
+                    onChanged: (String? newValue) async {
+                      if (newValue != null) {
+                        int farmId = _farmTypesList.keys
+                            .firstWhere((key) => _farmTypesList[key] == newValue);
+                        addDeviceNotifier.updateDeviceModel(farm: farmId);
+                        _farm.text = newValue;
+                      }
+                    },
+                    items: (filter, infiniteScrollProps) => _farmTypesList.values.toList(),
+                    selectedItem: _farm.text.isNotEmpty ? _farm.text : "Select Farm here",
+                    decoratorProps: DropDownDecoratorProps(
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: boxColor,
+                        labelText: "Select Farm here",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: borderColor,
+                            width: 1,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: borderColor,
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: borderColor,
+                            width: 1,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            vertical: 15.0, horizontal: 10.0), // Adjust padding to match TextField
+                      ),
+                    ),
+                    popupProps: PopupProps.menu(
+                      fit: FlexFit.loose,
+                      constraints: const BoxConstraints(maxHeight: 300),
+                      menuProps: const MenuProps(
+                        backgroundColor: Colors.white,
+                        elevation: 8,
+                      ),
+                      itemBuilder: (context, item, isSelected, boolAgain) {
+                        return Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.green : Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-        ),
       ],
     );
   }
@@ -1594,7 +1538,8 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
           },
           onChanged: (String? newValue) {
             if (newValue != null) {
-              addDeviceProv.updateParameter(newValue);
+              addDeviceNotifier.updateDeviceModel(deviceType: newValue);
+              _deviceType.text = newValue;
             }
           },
           items: (filter, infiniteScrollProps) => _devicesTypesList,
@@ -1626,16 +1571,15 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                 ),
               ),
               contentPadding: const EdgeInsets.symmetric(
-                  vertical: 15.0,
-                  horizontal: 10.0), // Adjust padding to match TextField
+                  vertical: 15.0, horizontal: 10.0), // Adjust padding to match TextField
             ),
           ),
           popupProps: PopupProps.menu(
             fit: FlexFit.loose,
-            disabledItemFn: (String item){
-              if(isControlSystemDisable && item == itemToDisable){
+            disabledItemFn: (String item) {
+              if (isControlSystemDisable && item == itemToDisable) {
                 return true;
-              }else{
+              } else {
                 return false;
               }
             },
@@ -1645,14 +1589,14 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
               elevation: 8,
             ),
             itemBuilder: (context, item, isSelected, boolAgain) {
-              return  Container(
+              return Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isSelected ? Colors.red : Colors.white,
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: Text(
-                  isSelected ? "$item ( Not available for Open Farm )" :item,
+                  isSelected ? "$item System ( Not available for Open Farm )" : item + " System",
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.black,
                   ),
@@ -1801,17 +1745,17 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
     );
   }
 
-  Widget noOfMistingPumpsTextField() {
+  Widget noOfHumiditySensorsTextField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        textFieldsLabelsRequired(noOfMistingPumpsLabel, 18),
+        textFieldsLabelsRequired(noOfHumiditySensorsLabel, 18),
         SizedBox(
           height: _spaceBetweenLabelAndTextField,
         ),
         TextFormField(
-          controller: _noOfMistingPumps,
+          controller: _noOfHumiditySensors,
           validator: (value) {
             if (value != null && value.isNotEmpty) {
               if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
@@ -1821,8 +1765,8 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
             return null; // No validation error for empty field
           },
           decoration: InputDecoration(
-            labelText: "No of Misting Pumps here",
-            hintText: "Enter No of Misting Pumps here",
+            labelText: "No of Humidity Sensors here",
+            hintText: "Enter No of Humidity Sensors here",
             labelStyle: GoogleFonts.poppins(
               // Applying Google Font for label
               textStyle: TextStyle(
@@ -2015,12 +1959,12 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
         TextFormField(
           controller: _waterTankSize,
           validator: (value) {
-            if(_deviceType.text == dosingSystem){
-              if(value != null && value.isNotEmpty ){
+            if (_deviceType.text == dosingSystem) {
+              if (value != null && value.isNotEmpty) {
                 if (!RegExp(r'^\d+(\.\d+)?$').hasMatch(value)) {
                   return 'Please enter a valid number';
                 }
-              }else{
+              } else {
                 return 'Please enter a Water Tank Size';
               }
             }
@@ -2088,57 +2032,69 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount:  screenResponsiveness == "desktop" ? 4 : screenResponsiveness == "tablet" ? 2 : 1,
+            crossAxisCount: screenResponsiveness == "desktop"
+                ? 4
+                : screenResponsiveness == "tablet"
+                    ? 2
+                    : 1,
             mainAxisSpacing: 15,
             crossAxisSpacing: 15,
-            childAspectRatio: screenResponsiveness == "desktop" ? 3 / 0.8 : screenResponsiveness == "tablet" ? 3 / 0.7 : 3 / 1,
+            childAspectRatio: screenResponsiveness == "desktop"
+                ? 3 / 0.8
+                : screenResponsiveness == "tablet"
+                    ? 3 / 0.7
+                    : 3 / 1,
           ),
           itemCount: _airParametersTypesList.length,
           itemBuilder: (context, index) {
             String parameter = _airParametersTypesList[index];
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: borderColor),
-                    borderRadius: BorderRadius.circular(10),
+            return Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: borderColor),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 15.0, top: 10, bottom: 10, right: 20),
+                    child: Icon(_airParametersIconsList[index], color: borderColor, size: 20),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 15.0, top: 10, bottom: 10, right: 20),
-                        child: Icon(_airParametersIconsList[index], color: borderColor, size: 20),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            parameter,
-                            style: GoogleFonts.poppins(
-                              textStyle: TextStyle(
-                                fontSize: screenResponsiveness == "desktop" ? 14 : screenResponsiveness == "tablet" ? 13 : 11,
-                                color: boxHeadingColor,
-                              ),
-                            ),
-                            textAlign: TextAlign.center,
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        parameter,
+                        style: GoogleFonts.poppins(
+                          textStyle: TextStyle(
+                            fontSize: screenResponsiveness == "desktop"
+                                ? 14
+                                : screenResponsiveness == "tablet"
+                                    ? 13
+                                    : 11,
+                            color: boxHeadingColor,
                           ),
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 20.0),
-                        child: Checkbox(
-                          activeColor: borderColor,
-                          value: _airCheckboxValues[parameter],
-                          onChanged: (bool? newValue) {
-                            if(newValue != null){
-                              addDeviceProv.updateAirCheckboxValues(parameter: parameter, newValue: newValue);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                );
-
+                  Padding(
+                    padding: const EdgeInsets.only(right: 20.0),
+                    child: Checkbox(
+                      activeColor: borderColor,
+                      value: _airCheckboxValues[parameter],
+                      onChanged: (bool? newValue) {
+                        if (newValue != null) {
+                          addDeviceNotifier.updateAirCheckboxValues(
+                              parameter: parameter, newValue: newValue);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
           },
         ),
         SizedBox(
@@ -2153,10 +2109,18 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount:  screenResponsiveness == "desktop" ? 4 : screenResponsiveness == "tablet" ? 2 : 1,
+            crossAxisCount: screenResponsiveness == "desktop"
+                ? 4
+                : screenResponsiveness == "tablet"
+                    ? 2
+                    : 1,
             mainAxisSpacing: 15,
             crossAxisSpacing: 15,
-            childAspectRatio: screenResponsiveness == "desktop" ? 3 / 0.8 : screenResponsiveness == "tablet" ? 3 / 0.7 : 3 / 0.9,
+            childAspectRatio: screenResponsiveness == "desktop"
+                ? 3 / 0.8
+                : screenResponsiveness == "tablet"
+                    ? 3 / 0.7
+                    : 3 / 0.9,
           ),
           itemCount: _soilParametersTypesList.length,
           itemBuilder: (context, index) {
@@ -2180,7 +2144,11 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                         parameter,
                         style: GoogleFonts.poppins(
                           textStyle: TextStyle(
-                            fontSize: screenResponsiveness == "desktop" ? 14 : screenResponsiveness == "tablet" ? 13 : 11,
+                            fontSize: screenResponsiveness == "desktop"
+                                ? 14
+                                : screenResponsiveness == "tablet"
+                                    ? 13
+                                    : 11,
                             color: boxHeadingColor,
                           ),
                         ),
@@ -2194,8 +2162,9 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                       activeColor: borderColor,
                       value: _soilCheckboxValues[parameter],
                       onChanged: (bool? newValue) {
-                        if(newValue != null){
-                          addDeviceProv.updateSoilCheckboxValues(parameter: parameter, newValue: newValue);
+                        if (newValue != null) {
+                          addDeviceNotifier.updateSoilCheckboxValues(
+                              parameter: parameter, newValue: newValue);
                         }
                       },
                     ),
@@ -2203,7 +2172,6 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
                 ],
               ),
             );
-
           },
         ),
       ],
@@ -2217,12 +2185,17 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
           : "Complete all fields and then\nclick on this button to add a device.",
       textAlign: TextAlign.center,
       child: ElevatedButton(
-        onPressed: ((_acquiredThroughUs || _userOwnDevice)) ? () {
-          _saveData(); // Call the save image method when the button is pressed
-        } : null,
+        onPressed: ((_acquiredThroughUs || _userOwnDevice))
+            ? () {
+                _saveData(); // Call the save image method when the button is pressed
+              }
+            : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: ((_acquiredThroughUs || _userOwnDevice)) ? buttonColor : Colors.grey, // Button color
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: responsive == "mobile" ? 15 : 20), // Adjust padding as needed
+          backgroundColor:
+              ((_acquiredThroughUs || _userOwnDevice)) ? buttonColor : Colors.grey, // Button color
+          padding: EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: responsive == "mobile" ? 15 : 20), // Adjust padding as needed
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(5), // Rounded corners
           ),
@@ -2244,5 +2217,4 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
       ),
     );
   }
-
 }

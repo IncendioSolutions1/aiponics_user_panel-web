@@ -31,10 +31,9 @@ class DashboardInfoNotifier extends StateNotifier<DashboardInfoModel> {
         'Line Graph',
         'Histogram',
         'Scatter Graph',
-        'Box Graph',
-        'Bubble Graph',
       ],
       tdsValues: null,
+      gaugesNames: [],
     );
   }
 
@@ -46,14 +45,14 @@ class DashboardInfoNotifier extends StateNotifier<DashboardInfoModel> {
       //     const Duration(seconds: 2)); // Simulate network delay
 
       // Replace with actual API response parsing
-      final Map<String, dynamic> fetchedData = {
+      final Map<String, double?> fetchedData = {
         "farmTemperature": double.parse("10"),
         "externalTemperature": double.parse("20"),
         "farmHumidity": double.parse("30"),
         "externalHumidity": double.parse("40"),
         "waterTemperature": double.parse("50"),
         "waterLevel": double.parse("60"),
-        "pHLevel": double.parse("05"),
+        "pHLevel": double.parse("5.5"),
         "farmCoLevel": double.parse("90"),
       };
 
@@ -85,6 +84,7 @@ class DashboardInfoNotifier extends StateNotifier<DashboardInfoModel> {
       log("Error fetching dashboard data: $e");
     }
   }
+
 
   void updateSelectedDevice(String newValue){
     state = state.copyWith(selectedDevice: newValue);

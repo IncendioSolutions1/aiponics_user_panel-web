@@ -1,7 +1,7 @@
 import 'package:aiponics_web_app/provider/dashboard%20management%20provider/dashboard_screen_info_provider.dart';
 import 'package:aiponics_web_app/models/user%20info%20model/user_info_model.dart';
 import 'package:aiponics_web_app/provider/colors%20and%20theme%20provider/color_scheme_provider.dart';
-import 'package:aiponics_web_app/provider/user%20info%20provide/user_info_provider.dart';
+import 'package:aiponics_web_app/provider/user%20info%20provider/user_info_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -40,7 +40,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Access the current user state
-    final userState = ref.watch(userInfoProvider);
+    final userState = ref.watch(userAccountInfoProvider);
     final screenInfoState = ref.watch(dashboardScreenInfoProvider);
     final fiveWidth = screenInfoState['fiveWidth'];
     final responsive = screenInfoState['screenResponsiveness'];
@@ -126,7 +126,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
 
   }
 
-  Widget userNameRoleAndPicture(UserInfo userState, Color boxHeadingColor) {
+  Widget userNameRoleAndPicture(UserAccountInfoModel userState, Color boxHeadingColor) {
     return Row(
       children: [
         Container(
@@ -140,7 +140,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(50),
             child: Image.asset(
-              userState.pictureUrl,
+              userState.profilePicture ?? "assets/images/logo.jpeg",
               width: 50,
               height: 50,
               fit: BoxFit.cover,
@@ -152,7 +152,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              userState.name,
+              "${userState.firstName} ${userState.lastName}",
               style: GoogleFonts.nunitoSans(
                 textStyle: TextStyle(
                   fontSize: 14,
@@ -163,7 +163,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              userState.role,
+              userState.role[0],
               style: GoogleFonts.nunitoSans(
                 textStyle: TextStyle(
                   fontSize: 12,

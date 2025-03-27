@@ -3,7 +3,7 @@ import 'package:aiponics_web_app/models/drawer%20info%20model/drawer_info_model.
 import 'package:aiponics_web_app/provider/colors%20and%20theme%20provider/color_scheme_provider.dart';
 import 'package:aiponics_web_app/provider/colors%20and%20theme%20provider/theme_provider.dart';
 import 'package:aiponics_web_app/provider/drawer%20info%20provider/drawer_provider.dart';
-import 'package:aiponics_web_app/provider/user%20info%20provide/user_info_provider.dart';
+import 'package:aiponics_web_app/provider/user%20info%20provider/user_info_provider.dart';
 import 'package:aiponics_web_app/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,7 +69,7 @@ class DrawerScreenState extends ConsumerState<DrawerScreen> with RouteAware{
     final themeData = ref.watch(themeProvider);
     final screenData = ref.read(dashboardScreenInfoProvider.notifier);
     final screenNotifier = ref.watch(dashboardScreenInfoProvider);
-    final userInfoNotifier = ref.watch(userInfoProvider);
+    final userInfoNotifier = ref.watch(userAccountInfoProvider);
     themeColors =  ThemeColors(context);
 
     DrawerInfo drawerState = ref.watch(drawerInfoProvider);
@@ -160,7 +160,7 @@ class DrawerScreenState extends ConsumerState<DrawerScreen> with RouteAware{
             // Desktop layout with permanent sidebar
             return Column(
               children: [
-                if(userInfoNotifier.showAds)
+                if(userInfoNotifier.role[0] != "loading" && userInfoNotifier.role[0] == "regular")
                   Container(
                     height: 80,
                     width: double.infinity,

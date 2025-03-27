@@ -1,108 +1,106 @@
 import 'dart:developer';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../controllers/farm and device controller/farm_controller.dart';
 import '../../models/farm and devices models/add_farm_model.dart';
+import '../../models/farm and devices models/farm_model.dart';
 
 class AddFarmNotifier extends StateNotifier<AddFarmModel> {
   AddFarmNotifier()
-      : super(AddFarmModel(
-            farmName: TextEditingController(),
-            farmType: TextEditingController(),
-            cropType: TextEditingController(),
-            customCropType: TextEditingController(),
-            farmLocation: TextEditingController(),
-            farmOperationalStatus: TextEditingController(),
-            farmsArea: TextEditingController(),
-            farmsDescription: TextEditingController(),
-            cropChoicesList: [
-              'herbs',
-              'Vegetables',
-              'Fruits',
-              'Leafy Greens',
-              'Mix',
-              'Custom'
-            ],
-            farmTypesList: [
-              'Open Farm',
-              'Green House',
-            ],
-            operationalStatusList: ['active', 'inactive'],
-            selectedCropChoices: "Select from here",
-            selectedFarmType: "Select from here",
-            selectedOperationalStatusChoice: "Select from here",
-            showErrorTextColorOnImage: false,
-            imageSelectText: "No Image Selected!",
-            descriptionFieldHeight: 200,
-            showCustomCropTypeField: false,
-            otherCropType: 'Custom',
-            isSqMeterSelected: false,
-            isSqFeetSelected: false,
-            isAcerSelected: false));
+      : super(
+    AddFarmModel(
+      farmModel: FarmModel(
+        name: '',
+        farmType: '',
+        crops: '',
+        location: '',
+        operationalStatus: '',
+        farmsArea: 0.0,
+        farmDescription: '',
+        areaUnit: '',
+        id: 0,
+        cropDescription: '',
+        images: null,
+        owner: '',
+        regDate: '',
+      ),
+      cropChoicesList: ['herbs', 'Vegetables', 'Fruits', 'Leafy Greens', 'Mix'],
+      farmTypesList: ['Open Farm', 'Green House'],
+      operationalChoicesList: ['active', 'inactive'],
+      showErrorTextColorOnImage: false,
+      imageSelectText: "No Image Selected!",
+      descriptionFieldHeight: 200,
+      isSqMeterSelected: false,
+      isSqFeetSelected: false,
+      isAcerSelected: false,
+      isEditing: false,
+    ),
+  );
 
-  // Update methods for TextEditingController fields
+  // Update the entire FarmModel
+  void updateFarmModel(FarmModel newFarmModel) {
+    state = state.copyWith(farmModel: newFarmModel);
+  }
+
+  // Update single fields of FarmModel
+
   void updateFarmName(String newName) {
-    state = state.copyWith(farmName: TextEditingController(text: newName));
+    state = state.copyWith(
+      farmModel: state.farmModel.copyWith(name: newName),
+    );
   }
 
   void updateFarmType(String newType) {
-    state = state.copyWith(farmType: TextEditingController(text: newType));
+    state = state.copyWith(
+      farmModel: state.farmModel.copyWith(farmType: newType),
+    );
   }
 
-  void updateCropType(String newCrop) {
-    state = state.copyWith(cropType: TextEditingController(text: newCrop));
-  }
-
-  void updateCustomCropType(String newCrop) {
-    state = state.copyWith(customCropType: TextEditingController(text: newCrop));
+  void updateCropType(String newCropType) {
+    state = state.copyWith(
+      farmModel: state.farmModel.copyWith(crops: newCropType),
+    );
   }
 
   void updateFarmLocation(String newLocation) {
-    state = state.copyWith(farmLocation: TextEditingController(text: newLocation));
+    state = state.copyWith(
+      farmModel: state.farmModel.copyWith(location: newLocation),
+    );
   }
 
   void updateFarmOperationalStatus(String newStatus) {
-    state = state.copyWith(farmOperationalStatus: TextEditingController(text: newStatus));
+    state = state.copyWith(
+      farmModel: state.farmModel.copyWith(operationalStatus: newStatus),
+    );
   }
 
-  void updateFarmsArea(String newArea) {
-    state = state.copyWith(farmsArea: TextEditingController(text: newArea));
+  void updateFarmsArea(double newArea) {
+    state = state.copyWith(
+      farmModel: state.farmModel.copyWith(farmsArea: newArea),
+    );
   }
-
 
   void updateFarmsDescription(String newDescription) {
-    state = state.copyWith(farmsDescription: TextEditingController(text: newDescription));
+    state = state.copyWith(
+      farmModel: state.farmModel.copyWith(farmDescription: newDescription),
+    );
   }
 
-  // Update methods for string fields
-  void updateSelectedCropChoices(String newChoice) {
-    state = state.copyWith(selectedCropChoices: newChoice);
+  void updateAreaUnit(String newAreaUnit) {
+    state = state.copyWith(
+      farmModel: state.farmModel.copyWith(areaUnit: newAreaUnit),
+    );
   }
 
-  void updateSelectedFarmType(String newType) {
-    state = state.copyWith(selectedFarmType: newType);
-  }
 
-  void updateSelectedOperationalStatusChoice(String newStatus) {
-    state = state.copyWith(selectedOperationalStatusChoice: newStatus);
-  }
-
+  // Update methods for AddFarmModel fields
   void updateImageSelectText(String newText) {
     state = state.copyWith(imageSelectText: newText);
   }
 
-  void updateOtherCropType(String newCropType) {
-    state = state.copyWith(otherCropType: newCropType);
-  }
-
-  // Update methods for boolean fields
   void toggleShowErrorTextColorOnImage(bool newValue) {
     state = state.copyWith(showErrorTextColorOnImage: newValue);
-  }
-
-  void toggleShowCustomCropTypeField(bool newValue) {
-    state = state.copyWith(showCustomCropTypeField: newValue);
   }
 
   void toggleIsSqMeterSelected(bool newValue) {
@@ -117,62 +115,95 @@ class AddFarmNotifier extends StateNotifier<AddFarmModel> {
     state = state.copyWith(isAcerSelected: newValue);
   }
 
-  // Update method for numeric fields
   void updateDescriptionFieldHeight(double newHeight) {
     state = state.copyWith(descriptionFieldHeight: newHeight);
   }
 
-  // Add the reset state method
-  void resetState() {
-    // Dispose existing controllers to free memory
-    state.farmName.dispose();
-    state.farmType.dispose();
-    state.cropType.dispose();
-    state.customCropType.dispose();
-    state.farmLocation.dispose();
-    state.farmOperationalStatus.dispose();
-    state.farmsArea.dispose();
-    state.farmsDescription.dispose();
+  void updateIsEditing(bool newValue) {
+    state = state.copyWith(isEditing: newValue);
+  }
 
-    // Reinitialize the state with default values
+  Future<bool> addFarmToServer() async {
+    bool status = false;
+    FarmModel farmModel = state.farmModel;
+    FarmModel farm = await FarmService.addFarmToServer(farmModel);
+    if(farm.id != 0){
+      status = true;
+      state = state.copyWith(farmModel: farm);
+    }
+    return status;
+  }
+
+  Future<bool> updateFarmToServer() async {
+    bool status = false;
+    FarmModel farmModel = state.farmModel;
+    bool farmUpdateStatus = await FarmService.updateFarmToServer(farmModel);
+    if(farmUpdateStatus){
+      status = true;
+      state = state.copyWith(farmModel: farmModel);
+    }
+    return status;
+  }
+
+  Future<bool> deleteFarmFromServer() async {
+    bool status = false;
+    FarmModel farmModel = state.farmModel;
+    bool farmDeleteStatus = await FarmService.deleteFarmFromServer(farmModel.id);
+    if(farmDeleteStatus){
+      status = true;
+      state = state.copyWith(
+          farmModel: FarmModel(
+            name: '',
+            farmType: '',
+            crops: '',
+            location: '',
+            operationalStatus: '',
+            farmsArea: 0.0,
+            farmDescription: '',
+            areaUnit: '',
+            id: 0,
+            cropDescription: '',
+            images: null,
+            owner: '',
+            regDate: '',
+          )
+      );
+    }
+    return status;
+  }
+
+  // Reset state method to reinitialize default values
+  void resetState() {
     state = AddFarmModel(
-      farmName: TextEditingController(),
-      farmType: TextEditingController(),
-      cropType: TextEditingController(),
-      customCropType: TextEditingController(),
-      farmLocation: TextEditingController(),
-      farmOperationalStatus: TextEditingController(),
-      farmsArea: TextEditingController(),
-      farmsDescription: TextEditingController(),
-      cropChoicesList: [
-        'herbs',
-        'Vegetables',
-        'Fruits',
-        'Leafy Greens',
-        'Mix',
-        'Custom'
-      ],
-      farmTypesList: [
-        'Open Farm',
-        'Green House',
-      ],
-      operationalStatusList: ['active', 'inactive'],
-      selectedCropChoices: "Select from here",
-      selectedFarmType: "Select from here",
-      selectedOperationalStatusChoice: "Select from here",
+      cropChoicesList: ['herbs', 'Vegetables', 'Fruits', 'Leafy Greens', 'Mix', 'Custom'],
+      farmTypesList: ['Open Farm', 'Greenhouse'],
+      operationalChoicesList: ['active', 'inactive'],
       showErrorTextColorOnImage: false,
       imageSelectText: "No Image Selected!",
       descriptionFieldHeight: 200,
-      showCustomCropTypeField: false,
-      otherCropType: 'Custom',
       isSqMeterSelected: false,
       isSqFeetSelected: false,
       isAcerSelected: false,
+      isEditing: false,
+      farmModel: FarmModel(
+        name: '',
+        farmType: '',
+        crops: '',
+        // customCropType: '',
+        location: '',
+        operationalStatus: '',
+        farmsArea: 0.0,
+        farmDescription: '',
+        areaUnit: '',
+        id: 0,
+        cropDescription: '',
+        images: null,
+        owner: '',
+        regDate: '',
+      ),
     );
   }
 
-
-  // Dispose controllers when no longer needed
   @override
   void dispose() {
     log("Disposed method called in Add Farm Provider");
@@ -181,7 +212,6 @@ class AddFarmNotifier extends StateNotifier<AddFarmModel> {
   }
 }
 
-final addFarmProvider =
-    StateNotifierProvider<AddFarmNotifier, AddFarmModel>((ref) {
+final addFarmProvider = StateNotifierProvider<AddFarmNotifier, AddFarmModel>((ref) {
   return AddFarmNotifier();
 });

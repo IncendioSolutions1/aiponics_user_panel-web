@@ -1,17 +1,26 @@
 import 'dart:developer';
-
+import 'package:aiponics_web_app/provider/farm%20and%20devices%20provider/view_farms_and_devices_provider.dart';
+import 'package:aiponics_web_app/routes/route.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aiponics_web_app/views/common/header/header_without_farm_dropdown.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
-class ViewFarmAndDevices extends StatefulWidget {
+import '../../../../models/farm and devices models/device_model.dart';
+import '../../../../models/farm and devices models/farm_model.dart';
+import '../../../../provider/farm and devices provider/add_device_provider.dart';
+import '../../../../provider/farm and devices provider/add_farm_provider.dart';
+
+class ViewFarmAndDevices extends ConsumerStatefulWidget {
   const ViewFarmAndDevices({super.key});
 
   @override
-  State<ViewFarmAndDevices> createState() => _ViewFarmAndDevicesState();
+  ConsumerState<ViewFarmAndDevices> createState() => _ViewFarmAndDevicesState();
 }
 
-class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
+class _ViewFarmAndDevicesState extends ConsumerState<ViewFarmAndDevices> {
   late Color boxColor;
   late Color borderColor;
   late Color imageBorderColor;
@@ -22,46 +31,12 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
   // Initially, no farm is selected
   String selectedFarm = "None";
 
-  Map<String, Map<String, dynamic>> farmsWithTheirDevices = {
-    'Farm 1': {
-      'status':
-          'Active', // Status can be 'Active', 'Inactive', 'Under Maintenance', etc.
-      'devices': [
-        {'name': 'Device 1', 'type': 'Windows'},
-        {'name': 'Device 2', 'type': 'Android'},
-        {'name': 'Device 3', 'type': 'iOS'},
-      ],
-    },
-    'Farm 2': {
-      'status': 'Inactive',
-      'devices': [
-        {'name': 'Device A', 'type': 'Android'},
-        {'name': 'Device B', 'type': 'Windows'},
-      ],
-    },
-    'Farm 3': {
-      'status': 'Inactive',
-      'devices': [
-        {'name': 'Device X', 'type': 'iOS'},
-        {'name': 'Device Y', 'type': 'Android'},
-        {'name': 'Device Z', 'type': 'Windows'},
-      ],
-    },
-    'Farm 4': {
-      'status': 'Active',
-      'devices': [
-        {'name': 'Device X', 'type': 'iOS'},
-        {'name': 'Device Y', 'type': 'Android'},
-        {'name': 'Device Z', 'type': 'Windows'},
-      ],
-    },
-  };
-
-  late List<String> farms;
+  late ViewFarmsAndDevicesNotifier viewFarmNotifier;
+  late dynamic viewFarmProv;
 
   @override
   void initState() {
-    farms = farmsWithTheirDevices.keys.toList();
+    viewFarmNotifier = ref.read(viewFarmsAndDevicesProvider.notifier);
     super.initState();
   }
 
@@ -69,6 +44,8 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final fiveWidth = screenWidth * 0.003434;
+
+    viewFarmProv = ref.watch(viewFarmsAndDevicesProvider);
 
     boxColor = Theme.of(context).colorScheme.onSecondary;
     borderColor = Theme.of(context).colorScheme.onSecondaryFixed;
@@ -152,21 +129,43 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
         mainAxisSpacing: 10,
         childAspectRatio: 3 / gridWidth,
       ),
-      itemCount: farms.length,
+      itemCount: ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading
+          ? 3
+          : ref.watch(viewFarmsAndDevicesProvider).farmModelList.length,
       itemBuilder: (context, index) {
-        var farm = farms[index];
-        return farmCard(
-          farm,
-          fiveWidth,
-          nameFontSize,
-          typeFontSize,
+        var farm = ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading
+            ? FarmModel(
+                name: '',
+                farmType: '',
+                crops: '',
+                location: '',
+                operationalStatus: '',
+                farmsArea: 0.0,
+                farmDescription: '',
+                areaUnit: '',
+                id: 0,
+                cropDescription: '',
+                images: null,
+                owner: '',
+                regDate: '',
+              )
+            : ref.watch(viewFarmsAndDevicesProvider).farmModelList[index];
+        return Skeletonizer(
+          enableSwitchAnimation: true,
+          enabled: ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading,
+          child: farmCard(
+            farm,
+            fiveWidth,
+            nameFontSize,
+            typeFontSize,
+          ),
         );
       },
     );
   }
 
   Widget farmCard(
-    final String farm,
+    final FarmModel farm,
     final double fiveWidth,
     final double nameFontSize,
     final double typeFontSize,
@@ -189,20 +188,16 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(15), // Radius for top-left corner
                   topRight: Radius.circular(15), // Radius for top-right corner
-                  bottomLeft:
-                      Radius.circular(15), // Radius for bottom-left corner
-                  bottomRight:
-                      Radius.circular(15), // Radius for bottom-right corner
+                  bottomLeft: Radius.circular(15), // Radius for bottom-left corner
+                  bottomRight: Radius.circular(15), // Radius for bottom-right corner
                 ),
               ),
               child: const ClipRRect(
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(15), // Radius for top-left corner
                   topRight: Radius.circular(15), // Radius for top-right corner
-                  bottomLeft:
-                      Radius.circular(15), // Radius for bottom-left corner
-                  bottomRight:
-                      Radius.circular(15), // Radius for bottom-right corner
+                  bottomLeft: Radius.circular(15), // Radius for bottom-left corner
+                  bottomRight: Radius.circular(15), // Radius for bottom-right corner
                 ),
                 child: Image(
                   image: AssetImage("assets/images/login_image.jpg"),
@@ -212,13 +207,12 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: fiveWidth * 2, vertical: fiveWidth * 3),
+            padding: EdgeInsets.symmetric(horizontal: fiveWidth * 2, vertical: fiveWidth * 3),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  farm,
+                  farm.name,
                   style: GoogleFonts.poppins(
                     fontSize: nameFontSize,
                   ),
@@ -227,13 +221,11 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
                   height: 10,
                 ),
                 Text(
-                  farmsWithTheirDevices[farm]?["status"],
+                  farm.operationalStatus,
                   style: GoogleFonts.poppins(
                     fontSize: typeFontSize,
                     fontWeight: FontWeight.w600,
-                    color: farmsWithTheirDevices[farm]?["status"] == "Active"
-                        ? borderColor
-                        : Colors.red,
+                    color: farm.operationalStatus == "active" ? borderColor : Colors.red,
                   ),
                 ),
               ],
@@ -247,27 +239,37 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Radio<String>(
-                  value: farm, // Unique value for this radio button
+                  value: farm.id.toString(), // Unique value for this radio button
                   groupValue: selectedFarm, // Current selected value
                   activeColor: borderColor,
                   toggleable: true,
-                  onChanged: (String? value) {
+                  onChanged: (String? value) async {
                     if (value == null) {
                       setState(() {
                         selectedFarm = "None";
                       });
                     } else {
                       setState(() {
-                        selectedFarm = value; // Update the selected option
+                        selectedFarm = "";
                       });
+                      bool status = await viewFarmNotifier.updateSelectedFarm(farm);
+                      if(status){
+                        setState(() {
+                          selectedFarm = value;
+                        });
+                      }
+
                     }
                   },
                 ),
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    ref.read(addFarmProvider.notifier).updateFarmModel(farm);
+                    ref.read(addFarmProvider.notifier).updateIsEditing(true);
+                    Get.toNamed(TRoutes.addFarms, arguments: true);
+                  },
                   padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(), // Remove default constraints
+                  constraints: const BoxConstraints(), // Remove default constraints
                   icon: const Icon(
                     Icons.settings,
                     color: Colors.black,
@@ -289,19 +291,6 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
     final double nameFontSize,
     final double typeFontSize,
   ) {
-    if (selectedFarm == "None") {
-      return Center(
-        child: Text(
-          'No farm selected right now!',
-          style: GoogleFonts.poppins(
-            textStyle: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      );
-    }
     return GridView.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: itemsPerRow,
@@ -309,21 +298,43 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
         mainAxisSpacing: 10,
         childAspectRatio: 3 / gridWidth,
       ),
-      itemCount: farmsWithTheirDevices[selectedFarm]!['devices'].length,
+      itemCount: ref.watch(viewFarmsAndDevicesProvider).areDevicesLoading
+          ? 3
+          : ref.watch(viewFarmsAndDevicesProvider).deviceModelList.length,
       itemBuilder: (context, index) {
-        var device = farmsWithTheirDevices[selectedFarm]!['devices'][index];
-        return deviceCard(
-          device,
-          fiveWidth,
-          nameFontSize,
-          typeFontSize,
+        var device = ref.watch(viewFarmsAndDevicesProvider).areDevicesLoading
+            ? DeviceModel(
+                id: 0,
+                name: '',
+                deviceType: '',
+                imeiOrApiKey: '',
+                farm: 0,
+                numFans: 0,
+                numCoolingPumps: 0,
+                numWaterSupplyPumps: 0,
+                numLights: 0,
+                numHumiditySensors: 0,
+                numTemperatureSensors: 0,
+                waterTankSize: 0,
+            deviceId: ''
+              )
+            : ref.watch(viewFarmsAndDevicesProvider).deviceModelList[index];
+        return Skeletonizer(
+          enableSwitchAnimation: true,
+          enabled: ref.watch(viewFarmsAndDevicesProvider).areDevicesLoading,
+          child: deviceCard(
+            device,
+            fiveWidth,
+            nameFontSize,
+            typeFontSize,
+          ),
         );
       },
     );
   }
 
   Widget deviceCard(
-    final Map<String, String> device,
+    final DeviceModel device,
     final double fiveWidth,
     final double nameFontSize,
     final double typeFontSize,
@@ -346,20 +357,16 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(15), // Radius for top-left corner
                   topRight: Radius.circular(15), // Radius for top-right corner
-                  bottomLeft:
-                      Radius.circular(15), // Radius for bottom-left corner
-                  bottomRight:
-                      Radius.circular(15), // Radius for bottom-right corner
+                  bottomLeft: Radius.circular(15), // Radius for bottom-left corner
+                  bottomRight: Radius.circular(15), // Radius for bottom-right corner
                 ),
               ),
               child: const ClipRRect(
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(15), // Radius for top-left corner
                   topRight: Radius.circular(15), // Radius for top-right corner
-                  bottomLeft:
-                      Radius.circular(15), // Radius for bottom-left corner
-                  bottomRight:
-                      Radius.circular(15), // Radius for bottom-right corner
+                  bottomLeft: Radius.circular(15), // Radius for bottom-left corner
+                  bottomRight: Radius.circular(15), // Radius for bottom-right corner
                 ),
                 child: Image(
                   image: AssetImage("assets/images/login_image.jpg"),
@@ -369,24 +376,21 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: fiveWidth * 2, vertical: fiveWidth * 3),
+            padding: EdgeInsets.symmetric(horizontal: fiveWidth * 2, vertical: fiveWidth * 3),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  device["name"]!,
+                  device.name,
                   style: GoogleFonts.poppins(
                     fontSize: nameFontSize,
                   ),
                 ),
                 SizedBox(height: fiveWidth * 1),
                 Text(
-                  device["type"]!,
+                  device.deviceType,
                   style: GoogleFonts.poppins(
-                      fontSize: typeFontSize,
-                      color: Colors.blueGrey,
-                      fontWeight: FontWeight.w300),
+                      fontSize: typeFontSize, color: Colors.blueGrey, fontWeight: FontWeight.w300),
                 ),
               ],
             ),
@@ -404,10 +408,13 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
                     size: 25,
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      ref.read(addDeviceProvider.notifier).updateDeviceModelFull(device);
+                      ref.read(addDeviceProvider.notifier).updateIsEditing(true);
+                      Get.toNamed(TRoutes.addDevice, arguments: true);
+                    },
                     padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints(), // Remove default constraints
+                    constraints: const BoxConstraints(), // Remove default constraints
                     icon: const Icon(
                       Icons.settings,
                       color: Colors.black,
@@ -450,15 +457,24 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
           ),
         ),
         const SizedBox(height: 30),
-        SizedBox(
-            height: 100 * (farms.length / itemsPerRow).ceilToDouble(),
-            child: farmGrid(
-              fiveWidth,
-              gridValue,
-              itemsPerRow,
-              nameFontSize,
-              typeFontSize,
-            )),
+        ref.watch(viewFarmsAndDevicesProvider).farmModelList.isEmpty &&
+                !ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading
+            ? const Center(
+                child: Text("No Farms Found"),
+              )
+            : SizedBox(
+                height: ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading
+                    ? 100
+                    : 100 *
+                        (ref.watch(viewFarmsAndDevicesProvider).farmModelList.length / itemsPerRow)
+                            .ceilToDouble(),
+                child: farmGrid(
+                  fiveWidth,
+                  gridValue,
+                  itemsPerRow,
+                  nameFontSize,
+                  typeFontSize,
+                )),
         const SizedBox(height: 40),
         Text(
           "Devices",
@@ -468,15 +484,46 @@ class _ViewFarmAndDevicesState extends State<ViewFarmAndDevices> {
           ),
         ),
         const SizedBox(height: 30),
-        SizedBox(
-            height: 100 * (farms.length / itemsPerRow).ceilToDouble(),
-            child: deviceGrid(
-              fiveWidth,
-              gridValue,
-              itemsPerRow,
-              nameFontSize,
-              typeFontSize,
-            )),
+        ref.watch(viewFarmsAndDevicesProvider).deviceModelList.isEmpty &&
+                !ref.watch(viewFarmsAndDevicesProvider).areDevicesLoading &&
+                selectedFarm != "None"
+            ? Center(
+                child: Text(
+                  "No Devices Found for this farm.",
+                  style: GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              )
+            : selectedFarm == "None"
+                ? Center(
+                    child: Text(
+                      'No farm selected right now!',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  )
+                : SizedBox(
+                    height: ref.watch(viewFarmsAndDevicesProvider).areDevicesLoading
+                        ? 100
+                        : 100 *
+                            (ref.watch(viewFarmsAndDevicesProvider).deviceModelList.length /
+                                    itemsPerRow)
+                                .ceilToDouble(),
+                    child: deviceGrid(
+                      fiveWidth,
+                      gridValue,
+                      itemsPerRow,
+                      nameFontSize,
+                      typeFontSize,
+                    )),
       ],
     );
   }
