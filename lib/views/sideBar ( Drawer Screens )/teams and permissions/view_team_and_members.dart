@@ -298,6 +298,7 @@ class _ViewTeamsAndMembersState extends ConsumerState<ViewTeamsAndMembers> {
     );
   }
 
+
   Widget teamCard(
       final TeamModel team,
       final double fiveWidth,
