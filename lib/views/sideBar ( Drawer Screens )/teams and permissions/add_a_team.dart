@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:aiponics_web_app/controllers/token%20controllers/access_and_refresh_token_controller.dart';
+import 'package:aiponics_web_app/models/farm%20and%20devices%20models/farm_model.dart';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:aiponics_web_app/api%20information/api_constants.dart';
 import 'package:aiponics_web_app/views/common/header/header_without_farm_dropdown.dart';
@@ -8,14 +12,19 @@ import 'package:aiponics_web_app/views/sideBar%20(%20Drawer%20Screens%20)/teams%
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class AddATeam extends StatefulWidget {
+import '../../../controllers/common_methods.dart';
+import '../../../controllers/network controllers/network_controller.dart';
+import '../../../provider/farm and devices provider/add_farm_provider.dart';
+import '../../../provider/farm and devices provider/view_farms_and_devices_provider.dart';
+
+class AddATeam extends ConsumerStatefulWidget {
   const AddATeam({super.key});
 
   @override
-  State<AddATeam> createState() => _AddATeamState();
+  ConsumerState<AddATeam> createState() => _AddATeamState();
 }
 
-class _AddATeamState extends State<AddATeam> {
+class _AddATeamState extends ConsumerState<AddATeam> {
   late Color boxColor;
   late Color borderColor;
   late Color boxHeadingColor;
@@ -38,28 +47,30 @@ class _AddATeamState extends State<AddATeam> {
   String selectedTeamStatus = "Select Member Status";
   String selectedManager = "Select Manager";
 
-  final List<String> _farmsList = [
-    'Long text for debugging',
-    'Farm 2',
-    'Farm 3',
-    'Farm 4',
-    'Farm 5',
-    'Farm 6',
-    'Farm 7',
-    'Farm 8',
-    'Farm 9',
-    'Farm 10',
-    'Farm 11',
-    'Farm 12',
+  List<FarmModel> _farmsList = [
+    // 'Long text for debugging',
+    // 'Farm 2',
+    // 'Farm 3',
+    // 'Farm 4',
+    // 'Farm 5',
+    // 'Farm 6',
+    // 'Farm 7',
+    // 'Farm 8',
+    // 'Farm 9',
+    // 'Farm 10',
+    // 'Farm 11',
+    // 'Farm 12',
   ];
 
   late List<String> _managersList = [];
 
   // A map to store checkbox states
-  final Map<String, bool> _farmsCheckboxValues = {};
+  final Map<int, bool> _farmsCheckboxValues = {};
 
   String userLevel = "Owner";
   String owner = "Owner";
+
+  bool isLoading = false;
 
   void showAddTeamMemberPopUp(BuildContext context) {
     showGeneralDialog(
@@ -99,25 +110,6 @@ class _AddATeamState extends State<AddATeam> {
 
   @override
   void initState() {
-    // Initialize each checkbox as unchecked (false)
-    for (var element in _farmsList) {
-      _farmsCheckboxValues[element] = false;
-    }
-
-    _managersList = [
-      "Select Manager",
-      'Manager 1',
-      'Manager 2',
-      'Manager 3',
-      'Manager 4',
-      'Manager 5',
-    ];
-
-    if(userLevel == owner){
-      _managersList.insert(1, owner);
-    }
-
-    _managersList.add("Add a new Manager");
 
     super.initState();
   }
@@ -134,37 +126,112 @@ class _AddATeamState extends State<AddATeam> {
   void _saveData() async {
     if (_formKey.currentState!.validate()) {
 
+      setState(() {
+        isLoading = true;
+      });
 
-      final url2 = Uri.parse(addTeamApi);
-      String? bearerToken = await fetchAccessToken();  // Replace with your token
-
-      try {
-        final response = await http.post(
-          url2,
-          headers: {
-            'Content-Type': 'application/json',  // Specify that you're sending JSON
-            'Authorization': 'Bearer $bearerToken',  // Adding the Bearer token to the header
-          },
-          body: jsonEncode({
-            "name": teamName.text,
-            "description": teamDescription.text,
-            "farms": [5, 6],
-            "manager": 12
-          }),  // Convert the payload map to a JSON string
-        );
-
-        if (response.statusCode == 201) {
-          // Success
-          log('API Call Success: ${response.body}');
-        } else {
-          // Handle API errors
-          log('Failed to call API: ${response.statusCode}');
-          log('Response Body: ${response.body}');
-        }
-      } catch (e) {
-        log('Request Error: $e');
+      if(_farmsList.isEmpty){
+        CommonMethods.showSnackBarWithoutContext(
+            "No Farms Found in server", "Please add a farm first for assigning a team to it.", ContentType.failure);
+        setState(() {
+          isLoading = false;
+        });
+        return;
       }
 
+      List<int> farmIds = _farmsList.map((farm) => farm.id).where((id) => _farmsCheckboxValues[id] == true).toList();
+
+      if(farmIds.isEmpty){
+        CommonMethods.showSnackBarWithoutContext(
+            "No Farms Selected", "Please select at least one farm for assigning a team to it.", ContentType.failure);
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+
+      String? bearerToken = await fetchAccessToken();
+
+      if (bearerToken == null) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "An error occurred. Please try again later.", ContentType.failure);
+        });
+        return;
+      }
+
+      try {
+        if (await NetworkController.isInternetAvailable()) {
+          final dio = Dio(BaseOptions(
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 15),
+          ));
+
+          final response = await dio.post(
+            addTeamApi,
+            options: Options(
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer $bearerToken",
+              },
+            ),
+            data: {
+              "name": teamName.text,
+              "description": teamDescription.text,
+              "farms": farmIds,
+              "manager": null
+            },
+          );
+
+          log("TEAM_ADD_RESPONSE: Received response with status code ${response.statusCode}");
+
+          if (response.statusCode == 201) {
+            log("TEAM_ADD_RESPONSE: Success: ${response.data}");
+            Future.delayed(const Duration(milliseconds: 100), () {
+              CommonMethods.showSnackBarWithoutContext(
+                  "Team Added Successfully",
+                  "The ${teamName.text} team has been added successfully.",
+                  ContentType.success);
+            });
+
+            setState(() {
+              teamName.clear();
+              teamDescription.clear();
+              _farmsCheckboxValues.clear();
+            });
+
+          } else {
+            log("TEAM_ADD_RESPONSE: Error ${response.statusCode}");
+            log("TEAM_ADD_RESPONSE: Response Data: ${response.data}");
+
+                CommonMethods.showSnackBarWithoutContext(
+                    "Failed to add Team", "Failed to add ${teamName.text} team to server.", ContentType.failure);
+          }
+        } else {
+          Future.delayed(const Duration(milliseconds: 100), () {
+            CommonMethods.showSnackBarWithoutContext(
+                "Error", "Internet not available", ContentType.failure);
+          });
+        }
+      } on DioException catch (e) {
+        log("TEAM_ADD_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (e.response?.statusCode == 403 &&
+              e.response?.data["detail"].contains(
+                  "One or more farms in the list are already being managed by other teams.")) {
+            CommonMethods.showSnackBarWithoutContext(
+                "Failed to add Team", "${e.response?.data["detail"]}", ContentType.failure);
+          } else {
+            CommonMethods.showSnackBarWithoutContext(
+                "Failed to add Team", "Failed to add ${teamName.text} team to server.", ContentType.failure);
+          }
+        });
+      }
+
+      setState(() {
+        isLoading = false;
+      });
 
     } else {
       // Validation failed, fields will be highlighted
@@ -185,6 +252,31 @@ class _AddATeamState extends State<AddATeam> {
         .textTheme
         .labelLarge!
         .color!; // Color for box headings
+
+
+
+      _farmsList = ref.watch(viewFarmsAndDevicesProvider).farmModelList;
+      // Initialize each checkbox as unchecked (false)
+      // for (var element in _farmsList) {
+      //   _farmsCheckboxValues[element.id] = false;
+      // }
+
+      _managersList = [
+        "Select Manager",
+        'Manager 1',
+        'Manager 2',
+        'Manager 3',
+        'Manager 4',
+        'Manager 5',
+      ];
+
+      if(userLevel == owner){
+        _managersList.insert(1, owner);
+      }
+
+      _managersList.add("Add a new Manager");
+
+
 
     // Get the screen size to make the layout responsive
     final screenWidth =
@@ -279,7 +371,7 @@ class _AddATeamState extends State<AddATeam> {
             boxShadow: [
               BoxShadow(
                 color: boxHeadingColor
-                    .withOpacity(0.1), // Shadow color with opacity
+                    .withAlpha(25), // Shadow color with opacity
                 spreadRadius: 3, // How much the shadow spreads
                 blurRadius: 4, // How blurry the shadow is
                 offset:
@@ -317,39 +409,39 @@ class _AddATeamState extends State<AddATeam> {
                   const SizedBox(
                     width: 10,
                   ),
-                  Flexible(
-                    flex: 1,
-                    child: teamStatusDropDown(),
-                  )
+                  // Flexible(
+                  //   flex: 1,
+                  //   child: teamStatusDropDown(),
+                  // )
                 ],
               ),
-              const SizedBox(
-                height: 20,
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    flex: 1,
-                    child: selectManagersOrOwnerDropDown(),
-                  ),
-                  if(selectedManager == "Add a new Manager")...[
-                    const SizedBox(
-                    width: 10,
-                  ),
-                    Flexible(
-                    flex: 1,
-                    child: managerEmailTextField(),
-                  ),
-                  ]
-                ],
-              ),
+              // const SizedBox(
+              //   height: 20,
+              // ),
+              // Row(
+              //   crossAxisAlignment: CrossAxisAlignment.start,
+              //   children: [
+              //     Flexible(
+              //       flex: 1,
+              //       child: selectManagersOrOwnerDropDown(),
+              //     ),
+              //     if(selectedManager == "Add a new Manager")...[
+              //       const SizedBox(
+              //       width: 10,
+              //     ),
+              //       Flexible(
+              //       flex: 1,
+              //       child: managerEmailTextField(),
+              //     ),
+              //     ]
+              //   ],
+              // ),
               const SizedBox(
                 height: 20,
               ),
 
-              if(selectedManager == "Add a new Manager")
-                managerNameTextField(),
+              // if(selectedManager == "Add a new Manager")
+              //   managerNameTextField(),
 
               const SizedBox(
                 height: 20,
@@ -372,11 +464,9 @@ class _AddATeamState extends State<AddATeam> {
     );
   }
 
-  tabletDashboard(BuildContext context, double fiveWidth, double fiveHeight,
-      double maxWidth) {}
+  tabletDashboard(BuildContext context, double fiveWidth, double fiveHeight, double maxWidth) {}
 
-  mobileDashboard(BuildContext context, double fiveWidth, double fiveHeight,
-      double maxWidth) {}
+  mobileDashboard(BuildContext context, double fiveWidth, double fiveHeight, double maxWidth) {}
 
   SizedBox addATeamMemberButton(BuildContext context) {
     return SizedBox(
@@ -476,240 +566,238 @@ class _AddATeamState extends State<AddATeam> {
     );
   }
 
-  Column teamStatusDropDown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Team Status",
-          style: GoogleFonts.poppins(
-              textStyle: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: boxHeadingColor,
-              )),
-        ),
-        const SizedBox(
-          height: 20,
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.3), // Background fill color
-            borderRadius: BorderRadius.circular(5), // Rounded corners
-            border: Border.all(
-              color: Colors.grey.shade400, // Border color
-              width: 1, // Border width
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12.0), // Padding inside the container
-            child: DropdownButton<String>(
-              value: selectedTeamStatus,
-              onChanged: (String? newValue) {
-                setState(() {
-                  selectedTeamStatus = newValue!;
-                });
-              },
-              items:
-              teamStatusList.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              isExpanded: true, // Ensures the dropdown takes up full width
-              iconEnabledColor: boxHeadingColor,
-              style: TextStyle(
-                color: boxHeadingColor.withOpacity(0.8), // Text color
-                fontSize: 14,
-              ),
-              underline: Container(), // Removes the default underline
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Column selectManagersOrOwnerDropDown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Select Manager",
-          style: GoogleFonts.poppins(
-              textStyle: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: boxHeadingColor,
-              )),
-        ),
-        const SizedBox(
-          height: 20,
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.3), // Background fill color
-            borderRadius: BorderRadius.circular(5), // Rounded corners
-            border: Border.all(
-              color: Colors.grey.shade400, // Border color
-              width: 1, // Border width
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12.0), // Padding inside the container
-            child: DropdownButton<String>(
-              value: selectedManager,
-              onChanged: (String? newValue) {
-                if(newValue != null) {
-                  setState(() {
-                    selectedManager = newValue;
-                  });
-                }
-              },
-              items: _managersList.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              isExpanded: true, // Ensures the dropdown takes up full width
-              iconEnabledColor: boxHeadingColor,
-              style: TextStyle(
-                color: boxHeadingColor.withOpacity(0.8), // Text color
-                fontSize: 14,
-              ),
-              underline: Container(), // Removes the default underline
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Column managerNameTextField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Enter new Manager's Name",
-          style: GoogleFonts.poppins(
-              textStyle: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: boxHeadingColor,
-              )),
-        ),
-        const SizedBox(
-          height: 20,
-        ),
-        TextFormField(
-          controller: teamManagerName,
-          decoration: InputDecoration(
-            hintText: "Enter new Manager's Name",
-            hintStyle: TextStyle(
-                fontSize: 14,
-                color:
-                boxHeadingColor.withOpacity(0.8)), // Custom hint text color
-            fillColor: Colors.grey.withOpacity(0.3), // Background fill color
-            filled: true, // Apply fill color
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5), // Rounded corners
-              borderSide:
-              BorderSide.none, // Remove outline border for a cleaner look
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5),
-              borderSide: BorderSide(
-                  color: Colors.grey.shade400), // Border when not focused
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5),
-              borderSide: BorderSide(
-                  color: Colors.grey.shade400,
-                  width: 1.5), // Border when focused
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a managers name';
-            }
-            return null; // Return null if validation passes
-          },
-          onChanged: (value) {
-            // Handle text changes here
-            log('Manager name: $value');
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget managerEmailTextField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Manager Email",
-          style: GoogleFonts.poppins(
-              textStyle: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: boxHeadingColor,
-              )),
-        ),
-        const SizedBox(
-          height: 20,
-        ),
-        TextFormField(
-          controller: managerEmail,
-          decoration: InputDecoration(
-            hintText: 'Enter Manager email',
-            hintStyle: TextStyle(
-                fontSize: 14,
-                color:
-                boxHeadingColor.withOpacity(0.8)), // Custom hint text color
-            fillColor: Colors.grey.withOpacity(0.3), // Background fill color
-            filled: true, // Apply fill color
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5), // Rounded corners
-              borderSide:
-              BorderSide.none, // Remove outline border for a cleaner look
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5),
-              borderSide: BorderSide(
-                  color: Colors.grey.shade400), // Border when not focused
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5),
-              borderSide: BorderSide(
-                  color: Colors.grey.shade400,
-                  width: 1.5), // Border when focused
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a member email';
-            }
-            // Regular expression for email validation
-            final emailRegex =
-            RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-            if (!emailRegex.hasMatch(value)) {
-              return 'Please enter a valid email address';
-            }
-            return null; // Return null if validation passes
-          },
-          onChanged: (value) {
-            // Handle text changes here
-            log('Manager Email: $value');
-          },
-        ),
-      ],
-    );
-  }
+  // Column teamStatusDropDown() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         "Team Status",
+  //         style: GoogleFonts.poppins(
+  //             textStyle: TextStyle(
+  //               fontSize: 14,
+  //               fontWeight: FontWeight.w500,
+  //               color: boxHeadingColor,
+  //             )),
+  //       ),
+  //       const SizedBox(
+  //         height: 20,
+  //       ),
+  //       Container(
+  //         decoration: BoxDecoration(
+  //           color: Colors.grey.withOpacity(0.3), // Background fill color
+  //           borderRadius: BorderRadius.circular(5), // Rounded corners
+  //           border: Border.all(
+  //             color: Colors.grey.shade400, // Border color
+  //             width: 1, // Border width
+  //           ),
+  //         ),
+  //         child: Padding(
+  //           padding: const EdgeInsets.symmetric(
+  //               horizontal: 12.0), // Padding inside the container
+  //           child: DropdownButton<String>(
+  //             value: selectedTeamStatus,
+  //             onChanged: (String? newValue) {
+  //               setState(() {
+  //                 selectedTeamStatus = newValue!;
+  //               });
+  //             },
+  //             items:
+  //             teamStatusList.map<DropdownMenuItem<String>>((String value) {
+  //               return DropdownMenuItem<String>(
+  //                 value: value,
+  //                 child: Text(value),
+  //               );
+  //             }).toList(),
+  //             isExpanded: true, // Ensures the dropdown takes up full width
+  //             iconEnabledColor: boxHeadingColor,
+  //             style: TextStyle(
+  //               color: boxHeadingColor.withOpacity(0.8), // Text color
+  //               fontSize: 14,
+  //             ),
+  //             underline: Container(), // Removes the default underline
+  //           ),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
+  // Column selectManagersOrOwnerDropDown() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         "Select Manager",
+  //         style: GoogleFonts.poppins(
+  //             textStyle: TextStyle(
+  //               fontSize: 14,
+  //               fontWeight: FontWeight.w500,
+  //               color: boxHeadingColor,
+  //             )),
+  //       ),
+  //       const SizedBox(
+  //         height: 20,
+  //       ),
+  //       Container(
+  //         decoration: BoxDecoration(
+  //           color: Colors.grey.withOpacity(0.3), // Background fill color
+  //           borderRadius: BorderRadius.circular(5), // Rounded corners
+  //           border: Border.all(
+  //             color: Colors.grey.shade400, // Border color
+  //             width: 1, // Border width
+  //           ),
+  //         ),
+  //         child: Padding(
+  //           padding: const EdgeInsets.symmetric(
+  //               horizontal: 12.0), // Padding inside the container
+  //           child: DropdownButton<String>(
+  //             value: selectedManager,
+  //             onChanged: (String? newValue) {
+  //               if(newValue != null) {
+  //                 setState(() {
+  //                   selectedManager = newValue;
+  //                 });
+  //               }
+  //             },
+  //             items: _managersList.map<DropdownMenuItem<String>>((String value) {
+  //               return DropdownMenuItem<String>(
+  //                 value: value,
+  //                 child: Text(value),
+  //               );
+  //             }).toList(),
+  //             isExpanded: true, // Ensures the dropdown takes up full width
+  //             iconEnabledColor: boxHeadingColor,
+  //             style: TextStyle(
+  //               color: boxHeadingColor.withOpacity(0.8), // Text color
+  //               fontSize: 14,
+  //             ),
+  //             underline: Container(), // Removes the default underline
+  //           ),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
+  // Column managerNameTextField() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         "Enter new Manager's Name",
+  //         style: GoogleFonts.poppins(
+  //             textStyle: TextStyle(
+  //               fontSize: 14,
+  //               fontWeight: FontWeight.w500,
+  //               color: boxHeadingColor,
+  //             )),
+  //       ),
+  //       const SizedBox(
+  //         height: 20,
+  //       ),
+  //       TextFormField(
+  //         controller: teamManagerName,
+  //         decoration: InputDecoration(
+  //           hintText: "Enter new Manager's Name",
+  //           hintStyle: TextStyle(
+  //               fontSize: 14,
+  //               color:
+  //               boxHeadingColor.withOpacity(0.8)), // Custom hint text color
+  //           fillColor: Colors.grey.withOpacity(0.3), // Background fill color
+  //           filled: true, // Apply fill color
+  //           border: OutlineInputBorder(
+  //             borderRadius: BorderRadius.circular(5), // Rounded corners
+  //             borderSide:
+  //             BorderSide.none, // Remove outline border for a cleaner look
+  //           ),
+  //           enabledBorder: OutlineInputBorder(
+  //             borderRadius: BorderRadius.circular(5),
+  //             borderSide: BorderSide(
+  //                 color: Colors.grey.shade400), // Border when not focused
+  //           ),
+  //           focusedBorder: OutlineInputBorder(
+  //             borderRadius: BorderRadius.circular(5),
+  //             borderSide: BorderSide(
+  //                 color: Colors.grey.shade400,
+  //                 width: 1.5), // Border when focused
+  //           ),
+  //         ),
+  //         validator: (value) {
+  //           if (value == null || value.isEmpty) {
+  //             return 'Please enter a managers name';
+  //           }
+  //           return null; // Return null if validation passes
+  //         },
+  //         onChanged: (value) {
+  //           // Handle text changes here
+  //           log('Manager name: $value');
+  //         },
+  //       ),
+  //     ],
+  //   );
+  // }
+  //
+  // Widget managerEmailTextField() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         "Manager Email",
+  //         style: GoogleFonts.poppins(
+  //             textStyle: TextStyle(
+  //               fontSize: 14,
+  //               fontWeight: FontWeight.w500,
+  //               color: boxHeadingColor,
+  //             )),
+  //       ),
+  //       const SizedBox(
+  //         height: 20,
+  //       ),
+  //       TextFormField(
+  //         controller: managerEmail,
+  //         decoration: InputDecoration(
+  //           hintText: 'Enter Manager email',
+  //           hintStyle: TextStyle(
+  //               fontSize: 14,
+  //               color:
+  //               boxHeadingColor.withOpacity(0.8)), // Custom hint text color
+  //           fillColor: Colors.grey.withOpacity(0.3), // Background fill color
+  //           filled: true, // Apply fill color
+  //           border: OutlineInputBorder(
+  //             borderRadius: BorderRadius.circular(5), // Rounded corners
+  //             borderSide:
+  //             BorderSide.none, // Remove outline border for a cleaner look
+  //           ),
+  //           enabledBorder: OutlineInputBorder(
+  //             borderRadius: BorderRadius.circular(5),
+  //             borderSide: BorderSide(
+  //                 color: Colors.grey.shade400), // Border when not focused
+  //           ),
+  //           focusedBorder: OutlineInputBorder(
+  //             borderRadius: BorderRadius.circular(5),
+  //             borderSide: BorderSide(
+  //                 color: Colors.grey.shade400,
+  //                 width: 1.5), // Border when focused
+  //           ),
+  //         ),
+  //         validator: (value) {
+  //           if (value == null || value.isEmpty) {
+  //             return 'Please enter a member email';
+  //           }
+  //           // Regular expression for email validation
+  //           final emailRegex =
+  //           RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+  //           if (!emailRegex.hasMatch(value)) {
+  //             return 'Please enter a valid email address';
+  //           }
+  //           return null; // Return null if validation passes
+  //         },
+  //         onChanged: (value) {
+  //           // Handle text changes here
+  //           log('Manager Email: $value');
+  //         },
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Column teamDescriptionTextField() {
     return Column(
@@ -784,13 +872,8 @@ class _AddATeamState extends State<AddATeam> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(4), // Rounded edges
           ),
-          padding: const EdgeInsets.only(
-              top: 17,
-              right: 16,
-              left: 16,
-              bottom: 17), // Adjust padding for size
         ),
-        child: Text(
+        child: isLoading ? const CircularProgressIndicator(color: Colors.white,) : Text(
           'Add Team',
           style: GoogleFonts.poppins(
             textStyle: const TextStyle(
@@ -853,50 +936,57 @@ class _AddATeamState extends State<AddATeam> {
           const SizedBox(
             height: 20,
           ),
-          Wrap(
-        spacing: 15, // Horizontal space between items
-        runSpacing: 15, // Vertical space between rows
-        children: _farmsList.map((parameter) {
-          return Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), // Add padding to the text
-            decoration: BoxDecoration(
-              border: Border.all(color: borderColor),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min, // Makes the row's width match its content
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    parameter,
-                    style: GoogleFonts.poppins(
-                      textStyle: TextStyle(
-                        fontSize: 14,
-                        color: boxHeadingColor,
-                      ),
+          ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading ? const Center( child: CircularProgressIndicator(),)  :
+              _farmsList.isEmpty ? Center(child: Text("No Farms Found", style: GoogleFonts.poppins(
+                textStyle: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: boxHeadingColor,
+                )),
+              ),) : Wrap(
+                spacing: 15, // Horizontal space between items
+                runSpacing: 15, // Vertical space between rows
+                children: _farmsList.map((parameter) {
+                  return Container(
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), // Add padding to the text
+                    decoration: BoxDecoration(
+                      border: Border.all(color: borderColor),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(width: 10), // Space between text and checkbox
-                Checkbox(
-                  activeColor: borderColor,
-                  value: _farmsCheckboxValues[parameter],
-                  onChanged: (bool? newValue) {
-                    setState(() {
-                      _farmsCheckboxValues[parameter] = newValue!;
-                    });
-                  },
-                ),
-                const SizedBox(width: 3),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min, // Makes the row's width match its content
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            parameter.name,
+                            style: GoogleFonts.poppins(
+                              textStyle: TextStyle(
+                                fontSize: 14,
+                                color: boxHeadingColor,
+                              ),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(width: 10), // Space between text and checkbox
+                        Checkbox(
+                          activeColor: borderColor,
+                          value: _farmsCheckboxValues[parameter.id] ?? false,
+                          onChanged: (bool? newValue) {
+                            setState(() {
+                              _farmsCheckboxValues[parameter.id] = newValue!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 3),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
 
         ],
       ),

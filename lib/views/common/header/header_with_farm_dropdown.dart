@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../controllers/token controllers/access_and_refresh_token_controller.dart';
+
 class CustomHeaderWithFarmDropdown extends ConsumerWidget {
   final String mainPageHeading;
   final String subHeading;
@@ -166,7 +168,11 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(50),
-            child: Image.asset(
+            child: userState.username == "loading" ? const SizedBox(
+              width: 50,
+              height: 50,
+              child: CircularProgressIndicator(color: Colors.green,),
+            ) : userState.username == "error" ? IconButton(onPressed: (){}, icon: const Icon(Icons.refresh)) : Image.asset(
               userState.profilePicture ?? "assets/images/logo.jpeg",
               width: 50,
               height: 50,
@@ -395,6 +401,14 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
         SizedBox(width: fiveWidth * 2),
         _accessibilityButton(Icons.save, "Export", width, themeColors,
             Colors.deepPurple, Colors.white),
+        SizedBox(width: fiveWidth * 2),
+        GestureDetector(
+          onTap: () {
+            logoutUser();
+            },
+          child: _accessibilityButton(Icons.exit_to_app, "Logout", width, themeColors,
+              Colors.red, Colors.white),
+        ),
       ],
     );
   }

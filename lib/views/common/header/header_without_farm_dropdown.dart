@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../controllers/token controllers/access_and_refresh_token_controller.dart';
+
 class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
   final String mainPageHeading;
   final String subHeading;
@@ -217,6 +219,14 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
         _accessibilityButton(Icons.print, "Print", width, themeColors ,themeColors.boxColor, themeColors.accessibilityButtonsBorderColor),
         SizedBox(width: fiveWidth * 2),
         _accessibilityButton(Icons.save, "Export", width, themeColors ,Colors.deepPurple, Colors.white),
+        SizedBox(width: fiveWidth * 2),
+        GestureDetector(
+          onTap: () {
+            logoutUser();
+          },
+          child: _accessibilityButton(Icons.exit_to_app, "Logout", width, themeColors,
+              Colors.red, Colors.white),
+        ),
       ],
     );
   }

@@ -129,7 +129,7 @@ class FarmService {
           log("FARM_RESPONSE: Response Data: ${response.data}");
 
           CommonMethods.showSnackBarWithoutContext(
-              "Success", "Farm added successfully", ContentType.success);
+              "Success", "Farm updated successfully", ContentType.success);
           status = true;
         } else {
           log("FARM_RESPONSE: Response error ${response.statusCode}");

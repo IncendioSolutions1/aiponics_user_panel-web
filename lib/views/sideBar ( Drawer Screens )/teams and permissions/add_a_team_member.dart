@@ -1,24 +1,33 @@
 import 'dart:developer';
 import 'dart:typed_data';
+import 'package:aiponics_web_app/controllers/common_methods.dart';
+import 'package:aiponics_web_app/models/farm%20and%20devices%20models/farm_model.dart';
+import 'package:aiponics_web_app/provider/farm%20and%20devices%20provider/view_farms_and_devices_provider.dart';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:dio/dio.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 
+import '../../../api information/api_constants.dart';
+import '../../../controllers/network controllers/network_controller.dart';
+import '../../../controllers/token controllers/access_and_refresh_token_controller.dart';
 import '../../common/header/header_without_farm_dropdown.dart';
 
-class AddATeamMember extends StatefulWidget {
+class AddATeamMember extends ConsumerStatefulWidget {
   final bool showHeader;
 
   const AddATeamMember({required this.showHeader, super.key});
 
   @override
-  State<AddATeamMember> createState() => _AddATeamMemberState();
+  ConsumerState<AddATeamMember> createState() => _AddATeamMemberState();
 }
 
-class _AddATeamMemberState extends State<AddATeamMember> {
+class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
   late Color boxColor;
   late Color borderColor;
   late Color boxHeadingColor;
@@ -36,22 +45,29 @@ class _AddATeamMemberState extends State<AddATeamMember> {
     'Active',
     'Inactive'
   ];
-  final List<String> teamsList = [
-    'Team 1',
-    'Team 2',
-    'Team 3'
-  ];
+  final Map<int, String> teamsList =  {};
 
-  String selectedMemberRole = "Select Member Role";
+  String selectedFarmList = "Select Farm";
   String selectedMemberStatus = "Select Member Status";
 
-  List<String> selectedMemberTeams = [];
+  int selectedFarmId = 0;
+
+
+  Map<int, String> selectedMemberTeams = {};
 
 
   // variable to store uploaded image in Uint8List format (for web)
   Uint8List? uploadedImage;
 
   String imageMessage = "No image uploaded yet";
+
+  int userId = 0;
+  int selectedTeamId = 0;
+  String userCheckStatus = "unchecked";
+  bool isEmailLoading = false;
+
+  bool isLoading = false;
+  bool isTeamLoading = false;
 
   Future<void> pickImage() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -84,11 +100,6 @@ class _AddATeamMemberState extends State<AddATeamMember> {
   }
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
     // Disposing of all TextEditingController instances
     memberName.dispose();
@@ -96,6 +107,358 @@ class _AddATeamMemberState extends State<AddATeamMember> {
 
     super.dispose();
   }
+
+  void checkIfUserExists() async {
+    setState(() {
+      isEmailLoading = true;
+    });
+
+    String? bearerToken = await fetchAccessToken();
+    if (bearerToken == null) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        CommonMethods.showSnackBarWithoutContext(
+            "Error", "An error occurred. Please try again later.", ContentType.failure);
+      });
+      setState(() {
+        isEmailLoading = false;
+      });
+      return;
+    }
+
+    try {
+      if (await NetworkController.isInternetAvailable()) {
+        final dio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+          // Do not override validateStatus globally here.
+        ));
+
+        // Use validateStatus in the Options to let 404 go to the exception block if needed.
+        final response = await dio.post(
+          checkIfUserExistsApi,
+          options: Options(
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $bearerToken",
+            },
+          ),
+          data: {
+            "email": memberEmail.text,
+          },
+        );
+
+        log("CHECK_USER_RESPONSE: Received response with status code ${response.statusCode}");
+        log("CHECK_USER_RESPONSE: Response Data: ${response.data}");
+
+        // If we get here, the response was successful (2xx).
+        if (response.data.containsKey("user_id")) {
+          int userId = response.data["user_id"];
+          log("CHECK_USER_RESPONSE: User found with ID: $userId");
+          CommonMethods.showSnackBarWithoutContext(
+              "User Found", "User exists with id: $userId", ContentType.success);
+          setState(() {
+            userCheckStatus = "found";
+            this.userId = userId;
+          });
+        } else {
+          // Unexpected structure on success response.
+          log("CHECK_USER_RESPONSE: Unexpected response structure: ${response.data}");
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "Unexpected response from server.", ContentType.failure);
+        }
+      } else {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "Internet not available", ContentType.failure);
+        });
+      }
+    } on DioException catch (e) {
+      log("CHECK_USER_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
+      // Here we check if the error response contains our expected "error" key.
+      if (e.response?.data != null &&
+          e.response?.data is Map &&
+          (e.response?.data as Map).containsKey("error")) {
+        String errorMsg = (e.response?.data as Map)["error"];
+        log("CHECK_USER_RESPONSE: User not found. Error: $errorMsg");
+        CommonMethods.showSnackBarWithoutContext(
+            "User Not Found", errorMsg, ContentType.failure);
+        setState(() {
+          userCheckStatus = "not-found";
+        });
+      } else {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Failed", "Failed to fetch member's details from server.", ContentType.failure);
+        });
+      }
+    }
+
+    setState(() {
+      isEmailLoading = false;
+    });
+  }
+
+  void sendInvitation() async {
+    setState(() {
+      isEmailLoading = true;
+    });
+
+    String? bearerToken = await fetchAccessToken();
+    if (bearerToken == null) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        CommonMethods.showSnackBarWithoutContext(
+            "Error", "An error occurred. Please try again later.", ContentType.failure);
+      });
+      setState(() {
+        isEmailLoading = false;
+      });
+      return;
+    }
+
+    try {
+      if (await NetworkController.isInternetAvailable()) {
+        final dio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+          // Do not override validateStatus globally here.
+        ));
+
+        // Use validateStatus in the Options to let 404 go to the exception block if needed.
+        final response = await dio.post(
+          sendInvitationApi,
+          options: Options(
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $bearerToken",
+            },
+          ),
+          data: {
+            "email": memberEmail.text,
+          },
+        );
+
+        log("CHECK_INVITE_RESPONSE: Received response with status code ${response.statusCode}");
+        log("CHECK_INVITE_RESPONSE: Response Data: ${response.data}");
+
+
+      } else {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "Internet not available", ContentType.failure);
+        });
+      }
+    } on DioException catch (e) {
+      log("CHECK_INVITE_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
+      // Here we check if the error response contains our expected "error" key.
+      if (e.response?.data != null &&
+          e.response?.data is Map &&
+          (e.response?.data as Map).containsKey("detail")) {
+        String errorMsg = (e.response?.data as Map)["detail"];
+        log("CHECK_INVITE_RESPONSE: User not found. Error: $errorMsg");
+        CommonMethods.showSnackBarWithoutContext(
+            "Invitation not sent", errorMsg, ContentType.failure);
+        setState(() {
+          userCheckStatus = "not-found";
+        });
+      } else {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Failed", "Failed to send invitation to member.", ContentType.failure);
+        });
+      }
+    }
+
+    setState(() {
+      isEmailLoading = false;
+    });
+  }
+
+  void _saveTeamMember() async {
+      setState(() {
+        isLoading = true;
+      });
+
+      // Ensure that the required IDs are available.
+      // For example, these can be set after checking user existence or team selection.
+      // Replace selectedUserId and selectedTeamId with your actual variable names.
+      if (userId == 0 || selectedTeamId == 0) {
+        CommonMethods.showSnackBarWithoutContext(
+            "Missing Information", "User or Team ID is missing.", ContentType.failure);
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      String? bearerToken = await fetchAccessToken();
+      if (bearerToken == null) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "An error occurred. Please try again later.", ContentType.failure);
+        });
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      try {
+        if (await NetworkController.isInternetAvailable()) {
+          final dio = Dio(BaseOptions(
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 15),
+          ));
+
+          final response = await dio.post(
+            "$addTeamMemberApi$selectedTeamId/members/",
+            options: Options(
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer $bearerToken",
+              },
+            ),
+            data: {
+              "user": userId, // e.g., 3
+              "team": selectedTeamId, // e.g., 2
+              "role": 'operator',
+              "profile_photo": null,
+            },
+          );
+
+          log("TEAM_MEMBER_ADD_RESPONSE: Received response with status code ${response.statusCode}");
+          if (response.statusCode == 201) {
+            log("TEAM_MEMBER_ADD_RESPONSE: Success: ${response.data}");
+            Future.delayed(const Duration(milliseconds: 100), () {
+              CommonMethods.showSnackBarWithoutContext(
+                  "Team Member Added Successfully",
+                  "The team member has been added successfully.",
+                  ContentType.success);
+            });
+            // Clear or reset fields if necessary
+            setState(() {
+              // For example:
+              // memberEmail.clear();
+              // selectedUserId = null;
+            });
+          } else {
+            log("TEAM_MEMBER_ADD_RESPONSE: Error ${response.statusCode}");
+            log("TEAM_MEMBER_ADD_RESPONSE: Response Data: ${response.data}");
+            CommonMethods.showSnackBarWithoutContext(
+                "Failed to add Team Member",
+                "Failed to add team member to the server.",
+                ContentType.failure);
+          }
+        } else {
+          Future.delayed(const Duration(milliseconds: 100), () {
+            CommonMethods.showSnackBarWithoutContext(
+                "Error", "Internet not available", ContentType.failure);
+          });
+        }
+      } on DioException catch (e) {
+        log("TEAM_MEMBER_ADD_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (e.response?.statusCode == 403 &&
+              e.response?.data["detail"].contains(
+                  "One or more farms in the list are already being managed by other teams.")) {
+            // If you expect a similar error here for team members (or adjust accordingly)
+            CommonMethods.showSnackBarWithoutContext(
+                "Failed to add Team Member", "${e.response?.data["detail"]}", ContentType.failure);
+          } else if (e.response?.data != null &&
+              e.response?.data is Map &&
+              (e.response?.data as Map).containsKey("error")) {
+            // This block handles the case when the API returns an error in the response payload.
+            String errorMsg = (e.response?.data as Map)["error"];
+            log("TEAM_MEMBER_ADD_RESPONSE: Error: $errorMsg");
+            CommonMethods.showSnackBarWithoutContext(
+                "Failed to add Team Member", errorMsg, ContentType.failure);
+          } else {
+            CommonMethods.showSnackBarWithoutContext(
+                "Failed to add Team Member", "Failed to add team member to the server.", ContentType.failure);
+          }
+        });
+      }
+
+      setState(() {
+        isLoading = false;
+      });
+
+    log("Exiting _saveTeamMember");
+  }
+
+  void fetchTeams() async {
+
+    setState(() {
+      isTeamLoading = true;
+    });
+      String? bearerToken = await fetchAccessToken();
+
+      if (bearerToken == null) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "An error occurred. Please try again later.", ContentType.failure);
+        });
+        return ;
+      }
+
+      try {
+        if (await NetworkController.isInternetAvailable()) {
+          final dio = Dio(BaseOptions(
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 15),
+          ));
+
+          final response = await dio.get(
+            "$addTeamApi$selectedFarmId/",
+            options: Options(
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer $bearerToken",
+              },
+            ),
+          );
+
+          log("TEAMS_FETCH_RESPONSE: Received response with status code ${response.statusCode}");
+
+          if (response.statusCode == 200 || response.statusCode == 201) {
+            log("TEAMS_FETCH_RESPONSE: Response Data: ${response.data}");
+
+            setState(() {
+              teamsList[response.data['id']] = response.data['name'];
+            });
+
+
+            Future.delayed(const Duration(milliseconds: 100), () {
+              CommonMethods.showSnackBarWithoutContext(
+                  "Success", "${teamsList.length} Teams fetched successfully", ContentType.success);
+            });
+          } else {
+            log("TEAMS_FETCH_RESPONSE: Response error ${response.statusCode}");
+            log("TEAMS_FETCH_RESPONSE: Response error ${response.data}");
+            Future.delayed(const Duration(milliseconds: 100), () {
+              CommonMethods.showSnackBarWithoutContext(
+                  "Error", "Error fetching teams. Please try again.", ContentType.failure);
+            });
+          }
+        } else {
+          Future.delayed(const Duration(milliseconds: 100), () {
+            CommonMethods.showSnackBarWithoutContext(
+                "Error", "Internet not available", ContentType.failure);
+          });
+        }
+      } on DioException catch (e) {
+        log("TEAMS_FETCH_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "An error occurred. Please try again later.", ContentType.failure);
+        });
+      }
+
+    setState(() {
+      isTeamLoading = false;
+    });
+
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +485,7 @@ class _AddATeamMemberState extends State<AddATeamMember> {
     final width = MediaQuery.of(context)
         .size
         .width; // Get the current width of the screen
+
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -204,47 +568,39 @@ class _AddATeamMemberState extends State<AddATeamMember> {
                       height: 40,
                     ),
 
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Flexible(
-                          flex: 1,
-                          child: memberNameTextField(),
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        Flexible(
-                          flex: 1,
-                          child: memberEmailTextField(),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 40), // Spacing between text fields
-
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Flexible(
-                          flex: 1,
-                          child: assignedMultipleTeamsDropdown(),
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        Flexible(
-                          flex: 1,
-                          child: memberStatusTextField(),
-                        ),
-                      ],
-                    ),
+                    memberEmailTextField(),
 
                     const SizedBox(
                       height: 40,
                     ),
 
-                    addMemberButton(),
+                    if(userCheckStatus == "found")...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Flexible(
+                            flex: 1,
+                            child: farmsDropdown(),
+                          ),
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          Flexible(
+                            flex: 1,
+                            child: assignedMultipleTeamsDropdown(),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(
+                        height: 40,
+                      ),
+
+                      addMemberButton(),
+                    ],
+
+
+
                   ],
                 ),
               ),
@@ -386,19 +742,17 @@ class _AddATeamMemberState extends State<AddATeamMember> {
         height: 48,
         width: 250,
         child: ElevatedButton(
-          onPressed: () {},
+          onPressed: () {
+            _saveTeamMember();
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: borderColor, // Customize the button color
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4), // Rounded edges
             ),
-            padding: const EdgeInsets.only(
-                top: 17,
-                right: 16,
-                left: 16,
-                bottom: 17), // Adjust padding for size
+
           ),
-          child: Text(
+          child: isLoading ? const CircularProgressIndicator(color: Colors.white,) : Text(
             'Add Member',
             style: GoogleFonts.poppins(
               textStyle: const TextStyle(
@@ -412,23 +766,53 @@ class _AddATeamMemberState extends State<AddATeamMember> {
     );
   }
 
-  Column memberStatusTextField() {
+  Column farmsDropdown() {
+    // Create a fresh list each time the widget builds.
+    final List<FarmModel> farms = [
+      FarmModel(
+        id: 0,
+        name: "Select Farm",
+        regDate: '',
+        owner: '',
+        images: null,
+        cropDescription: '',
+        areaUnit: '',
+        crops: '',
+        farmDescription: '',
+        farmType: '',
+        location: '',
+        operationalStatus: '',
+        farmsArea: 0,
+      ),
+    ];
+
+    // Get the latest farms from the provider and add them
+    final List<FarmModel> fetchedFarms = ref.watch(viewFarmsAndDevicesProvider).farmModelList;
+    if (fetchedFarms.isNotEmpty) {
+      farms.addAll(fetchedFarms);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Member Status",
+          "Select Farm",
           style: GoogleFonts.poppins(
-              textStyle: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: boxHeadingColor,
-          )),
+            textStyle: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: boxHeadingColor,
+            ),
+          ),
         ),
         const SizedBox(
           height: 20,
         ),
-        Container(
+        ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading
+            ? const Center(child: CircularProgressIndicator(color: Colors.green,))
+            : farms.isEmpty
+            ? const Text("No Farms found")
+            : Container(
           decoration: BoxDecoration(
             color: Colors.grey.withOpacity(0.3), // Background fill color
             borderRadius: BorderRadius.circular(5), // Rounded corners
@@ -438,35 +822,42 @@ class _AddATeamMemberState extends State<AddATeamMember> {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12.0), // Padding inside the container
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: DropdownButton<String>(
-              value: selectedMemberStatus,
+              value: selectedFarmList,
               onChanged: (String? newValue) {
-                setState(() {
-                  selectedMemberStatus = newValue!;
-                });
+                log("farm check 1: $farms");
+                log("farm check 2: $newValue");
+                if (newValue != null) {
+                  setState(() {
+                    selectedFarmList = newValue;
+                    selectedFarmId = farms.firstWhere((farm) => farm.name == newValue).id;
+                  });
+                  if (newValue != "Select Farm") {
+                    fetchTeams();
+                  }
+                }
               },
-              items: memberStatusList
-                  .map<DropdownMenuItem<String>>((String value) {
+              items: farms.map<DropdownMenuItem<String>>((FarmModel value) {
                 return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
+                  value: value.name,
+                  child: Text(value.name),
                 );
               }).toList(),
-              isExpanded: true, // Ensures the dropdown takes up full width
+              isExpanded: true,
               iconEnabledColor: boxHeadingColor,
               style: TextStyle(
-                color: boxHeadingColor.withOpacity(0.8), // Text color
+                color: boxHeadingColor.withOpacity(0.8),
                 fontSize: 14,
               ),
-              underline: Container(), // Removes the default underline
+              underline: Container(),
             ),
           ),
         ),
       ],
     );
   }
+
 
   Column assignedMultipleTeamsDropdown() {
     return Column(
@@ -484,6 +875,10 @@ class _AddATeamMemberState extends State<AddATeamMember> {
         const SizedBox(
           height: 20,
         ),
+        ref.watch(viewFarmsAndDevicesProvider).areFarmsLoading ?
+        const Center(child: Text("Please wait."),) : selectedFarmId == 0 ?
+        const Center(child: Text("Please select or add farm!"),) :
+        isTeamLoading ? const Center(child: CircularProgressIndicator(color: Colors.green,),) :
         Container(
           decoration: BoxDecoration(
             color: Colors.grey.withOpacity(0.3), // Background fill color
@@ -505,18 +900,27 @@ class _AddATeamMemberState extends State<AddATeamMember> {
               searchable: true,
               dialogWidth: 500,
               dialogHeight: 300,
-              items: teamsList
-                  .map((team) => MultiSelectItem<String>(team, team))
+              items: teamsList.entries
+                  .map((entry) => MultiSelectItem<String>(entry.value, entry.value))
                   .toList(),
               title: const Text("Select Teams"),
               selectedColor: Colors.blue,
               buttonText: const Text("Choose Teams"),
               onConfirm: (values) {
                 setState(() {
-                  selectedMemberTeams = List<String>.from(values);
+                  selectedTeamId = teamsList.entries
+                      .where((entry) => values.contains(entry.value))
+                      .map((entry) => entry.key).first;
+
+                  // Rebuild the map with keys from teamsList for the selected team names.
+                  selectedMemberTeams = {
+                    for (var entry in teamsList.entries)
+                      if (values.contains(entry.value)) entry.key: entry.value,
+                  };
                 });
               },
-              initialValue: selectedMemberTeams,
+              // initialValue must be a list of team names, not the map itself.
+              initialValue: selectedMemberTeams.values.toList(),
             ),
           ),
         ),
@@ -540,111 +944,97 @@ class _AddATeamMemberState extends State<AddATeamMember> {
         const SizedBox(
           height: 20,
         ),
-        TextFormField(
-          controller: memberEmail,
-          decoration: InputDecoration(
-            hintText: 'Member Email',
-            hintStyle: TextStyle(
-                fontSize: 14,
-                color:
-                    boxHeadingColor.withOpacity(0.8)), // Custom hint text color
-            fillColor: Colors.grey.withOpacity(0.3), // Background fill color
-            filled: true, // Apply fill color
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5), // Rounded corners
-              borderSide:
-                  BorderSide.none, // Remove outline border for a cleaner look
+        Row(
+          children: [
+            Flexible(
+              flex: 8,
+              child: TextFormField(
+                controller: memberEmail,
+                decoration: InputDecoration(
+                  hintText: 'Member Email',
+                  hintStyle: TextStyle(
+                    fontSize: 14,
+                    color: boxHeadingColor.withAlpha(200),
+                  ),
+                  fillColor: Colors.grey.withAlpha(75),
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(5),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(5),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(5),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade400,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a member email';
+                  }
+                  final emailRegex =
+                  RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                  if (!emailRegex.hasMatch(value)) {
+                    return 'Please enter a valid email address';
+                  }
+                  return null;
+                },
+                onChanged: (value) {
+                  setState(() {
+                    userCheckStatus = "unchecked";
+                  });
+                },
+              ),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5),
-              borderSide: BorderSide(
-                  color: Colors.grey.shade400), // Border when not focused
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5),
-              borderSide: BorderSide(
-                  color: Colors.grey.shade400,
-                  width: 1.5), // Border when focused
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a member email';
-            }
-            // Regular expression for email validation
-            final emailRegex =
-                RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-            if (!emailRegex.hasMatch(value)) {
-              return 'Please enter a valid email address';
-            }
-            return null; // Return null if validation passes
-          },
-          onChanged: (value) {
-            // Handle text changes here
-            log('Owner: $value');
-          },
+            if(userCheckStatus != "found")...[
+              const SizedBox(width: 10,),
+              Flexible(
+                flex: 2,
+                child: SizedBox(
+                  height: 46,
+                  width: MediaQuery.of(context).size.width,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if(userCheckStatus == "unchecked"){
+                        checkIfUserExists();
+                      }else if (userCheckStatus == "not-found"){
+                        log("NOT FOUND");
+                        sendInvitation();
+                      }
+
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: borderColor, // Customize the button color
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4), // Rounded edges
+                      ),
+                    ),
+                    child: isEmailLoading ? const CircularProgressIndicator(color: Colors.white,) : Text(
+                      userCheckStatus == "unchecked" ? 'Check User' : 'Send Invitation',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                            color: Colors.white, // White text
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            ]
+
+          ],
         ),
       ],
     );
   }
 
-  Column memberNameTextField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Member Name",
-          style: GoogleFonts.poppins(
-              textStyle: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: boxHeadingColor,
-          )),
-        ),
-        const SizedBox(
-          height: 20,
-        ),
-        TextFormField(
-          controller: memberName,
-          decoration: InputDecoration(
-            hintText: 'Member Name',
-            hintStyle: TextStyle(
-                fontSize: 14,
-                color:
-                    boxHeadingColor.withOpacity(0.8)), // Custom hint text color
-            fillColor: Colors.grey.withOpacity(0.3), // Background fill color
-            filled: true, // Apply fill color
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5), // Rounded corners
-              borderSide:
-                  BorderSide.none, // Remove outline border for a cleaner look
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5),
-              borderSide: BorderSide(
-                  color: Colors.grey.shade400), // Border when not focused
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(5),
-              borderSide: BorderSide(
-                  color: Colors.grey.shade400,
-                  width: 1.5), // Border when focused
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a Member name';
-            } else if (value.length < 3) {
-              return 'Member name must be at least 3 characters';
-            }
-            return null; // Return null if validation passes
-          },
-          onChanged: (value) {
-            // Handle text changes here
-            log('Owner Name: $value');
-          },
-        ),
-      ],
-    );
-  }
 }

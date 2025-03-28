@@ -5,7 +5,14 @@ import 'package:aiponics_web_app/controllers/token%20controllers/access_and_refr
 import '../models/user info model/user_info_model.dart';
 
 class UserAccountInfoApi {
+
   static Future<UserAccountInfoModel> getUserAccountInfo() async {
+    UserAccountInfoModel userAccountInfoModel = UserAccountInfoModel(
+        id: 0, password: '', isSuperuser: false, username: 'Error', isStaff: false, isActive: false,
+        dateJoined: DateTime(2025), email: '', firstName: 'Error', lastName: '',
+        isActiveSubscription: false, registeredDate: DateTime(2025), role: ['Operator'], plan: 1,
+        groups: [], userPermissions: []);
+
     // Get your access token
     String? bearerToken = await fetchAccessToken();
 
@@ -33,7 +40,7 @@ class UserAccountInfoApi {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         log("USER_INFO_RESPONSE: Response Data: ${response.data}");
-        return UserAccountInfoModel.fromJson(response.data);
+        userAccountInfoModel =  UserAccountInfoModel.fromJson(response.data);
       } else {
         log("USER_INFO_RESPONSE: Response error ${response.statusCode}");
         throw Exception("Error fetching user information");
@@ -42,5 +49,6 @@ class UserAccountInfoApi {
       log("USER_INFO_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
       throw Exception("Error fetching user information");
     }
+    return userAccountInfoModel;
   }
 }

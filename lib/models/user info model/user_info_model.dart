@@ -1,4 +1,4 @@
-import 'package:meta/meta.dart';
+
 
 class UserAccountInfoModel {
   final int id;
@@ -24,6 +24,7 @@ class UserAccountInfoModel {
   final int plan;
   final List<dynamic> groups;
   final List<dynamic> userPermissions;
+  final bool isLoading;
 
   UserAccountInfoModel({
     required this.id,
@@ -49,6 +50,7 @@ class UserAccountInfoModel {
     required this.plan,
     required this.groups,
     required this.userPermissions,
+    this.isLoading = true,
   });
 
   factory UserAccountInfoModel.fromJson(Map<String, dynamic> json) {
@@ -106,4 +108,5 @@ class UserAccountInfoModel {
       'user_permissions': userPermissions,
     };
   }
+
 }

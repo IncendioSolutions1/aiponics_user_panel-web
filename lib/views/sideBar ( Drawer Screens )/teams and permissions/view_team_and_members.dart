@@ -1,16 +1,27 @@
+import 'dart:convert';
 import 'dart:developer';
+import 'package:aiponics_web_app/controllers/common_methods.dart';
+import 'package:aiponics_web_app/controllers/network%20controllers/network_controller.dart';
+import 'package:aiponics_web_app/controllers/token%20controllers/access_and_refresh_token_controller.dart';
+import 'package:aiponics_web_app/models/team%20and%20members%20model/member_model.dart';
 import 'package:aiponics_web_app/views/common/header/header_without_farm_dropdown.dart';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ViewTeamsAndMembers extends StatefulWidget {
+import '../../../api information/api_constants.dart';
+import '../../../models/team and members model/team_model.dart';
+
+class ViewTeamsAndMembers extends ConsumerStatefulWidget {
   const ViewTeamsAndMembers({super.key});
 
   @override
-  State<ViewTeamsAndMembers> createState() => _ViewTeamsAndMembersState();
+  ConsumerState<ViewTeamsAndMembers> createState() => _ViewTeamsAndMembersState();
 }
 
-class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
+class _ViewTeamsAndMembersState extends ConsumerState<ViewTeamsAndMembers> {
   late Color boxColor;
   late Color borderColor;
   late Color imageBorderColor;
@@ -21,47 +32,170 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
   // Initially, no farm is selected
   String selectedTeam = "None";
 
-  Map<String, Map<String, dynamic>> teamsWithTheirMembers = {
-    'Team 1': {
-      'status':
-      'Active', // Status can be 'Active', 'Inactive', 'Under Maintenance', etc.
-      'members': [
-        {'name': 'Member 1', 'assigned_farms': ['1', '2', '3']},
-        {'name': 'Member 2', 'assigned_farms': ['4', '5']},
-        {'name': 'Member 3', 'assigned_farms': ['6', '7']},
-      ],
-    },
-    'Team 2': {
-      'status': 'Inactive',
-      'members': [
-        {'name': 'Member A', 'assigned_farms': ['8', '9', '10']},
-        {'name': 'Member B', 'assigned_farms':[]},
-      ],
-    },
-    'Team 3': {
-      'status': 'Inactive',
-      'members': [
-        {'name': 'Member X', 'assigned_farms': ['11', '12', '13']},
-        {'name': 'Member Y', 'assigned_farms': ['14']},
-        {'name': 'Member Z', 'assigned_farms':['15']},
-      ],
-    },
-    'Team 4': {
-      'status': 'Active',
-      'members': [
-        {'name': 'Member X', 'assigned_farms': ['16', '17', '18']},
-        {'name': 'Member Y', 'assigned_farms': ['19', '20']},
-        {'name': 'Member Z', 'assigned_farms':['21', '22', '23']},
-      ],
-    },
-  };
+  List<TeamModel> teamList = [];
+  List<TeamMemberModel> teamMemberList = [];
 
-  late List<String> farms;
 
   @override
   void initState() {
-    farms = teamsWithTheirMembers.keys.toList();
+    fetchTeams();
     super.initState();
+  }
+
+  void fetchTeams() async {
+
+    String? bearerToken = await fetchAccessToken();
+
+    if (bearerToken == null) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        CommonMethods.showSnackBarWithoutContext(
+            "Error", "An error occurred. Please try again later.", ContentType.failure);
+      });
+      return;
+    }
+
+    try {
+      if (await NetworkController.isInternetAvailable()) {
+        final dio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+        ));
+
+        final response = await dio.get(
+          viewTeamsApi,
+          options: Options(
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $bearerToken",
+            },
+          ),
+        );
+
+        log("TEAM_FETCH_RESPONSE: Received response with status code ${response.statusCode}");
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          log("TEAM_FETCH_RESPONSE: Response Data: ${response.data}");
+
+          // Ensure response.data is properly parsed
+          if (response.data is String) {
+            response.data = jsonDecode(response.data);
+          }
+
+          if (response.data is List) {
+            setState(() {
+              teamList.clear();
+              teamList = (response.data as List<dynamic>)
+                  .map((item) => TeamModel.fromJson(item as Map<String, dynamic>))
+                  .toList();
+            });
+
+            Future.delayed(const Duration(milliseconds: 100), () {
+              CommonMethods.showSnackBarWithoutContext(
+                  "Success", "Team fetched successfully", ContentType.success);
+            });
+          } else {
+            log("TEAM_FETCH_RESPONSE: Unexpected data format: ${response.data}");
+            throw Exception("Unexpected response format");
+          }
+
+
+          Future.delayed(const Duration(milliseconds: 100), () {
+            CommonMethods.showSnackBarWithoutContext(
+                "Success", "Team fetched successfully", ContentType.success);
+          });
+        } else {
+          log("TEAM_FETCH_RESPONSE: Response error ${response.statusCode}");
+          log("TEAM_FETCH_RESPONSE: Response error ${response.data}");
+          Future.delayed(const Duration(milliseconds: 100), () {
+            CommonMethods.showSnackBarWithoutContext(
+                "Error", "Error adding farm. Please try again.", ContentType.failure);
+          });
+        }
+      } else {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "Internet not available", ContentType.failure);
+        });
+      }
+    } on DioException catch (e) {
+      log("TEAM_FETCH_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
+      Future.delayed(const Duration(milliseconds: 100), () {
+        CommonMethods.showSnackBarWithoutContext(
+            "Error", "An error occurred. Please try again later.", ContentType.failure);
+      });
+    }
+
+
+  }
+
+  void fetchTeamMembers(String value) async {
+
+    String? bearerToken = await fetchAccessToken();
+
+    if (bearerToken == null) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        CommonMethods.showSnackBarWithoutContext(
+            "Error", "An error occurred. Please try again later.", ContentType.failure);
+      });
+      return;
+    }
+
+    try {
+      if (await NetworkController.isInternetAvailable()) {
+        final dio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+        ));
+
+        final response = await dio.get(
+          "$viewMembersOfSingleTeamApi$value/members/",
+          options: Options(
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $bearerToken",
+            },
+          ),
+        );
+
+        log("TEAM_MEMBER_FETCH_RESPONSE: Received response with status code ${response.statusCode}");
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          log("TEAM_MEMBER_FETCH_RESPONSE: Response Data: ${response.data}");
+
+
+
+          setState(() {
+            teamMemberList.clear();
+            teamMemberList = (response.data as List)
+                .map((item) => TeamMemberModel.fromJson(item as Map<String, dynamic>))
+                .toList();
+          });
+
+          Future.delayed(const Duration(milliseconds: 100), () {
+            CommonMethods.showSnackBarWithoutContext(
+                "Success", "Member fetched successfully", ContentType.success);
+          });
+        } else {
+          log("TEAM_MEMBER_FETCH_RESPONSE: Response error ${response.statusCode}");
+          log("TEAM_MEMBER_FETCH_RESPONSE: Response error ${response.data}");
+          Future.delayed(const Duration(milliseconds: 100), () {
+            CommonMethods.showSnackBarWithoutContext(
+                "Error", "Error adding farm. Please try again.", ContentType.failure);
+          });
+        }
+      } else {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          CommonMethods.showSnackBarWithoutContext(
+              "Error", "Internet not available", ContentType.failure);
+        });
+      }
+    } on DioException catch (e) {
+      log("TEAM_MEMBER_FETCH_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
+      Future.delayed(const Duration(milliseconds: 100), () {
+        CommonMethods.showSnackBarWithoutContext(
+            "Error", "An error occurred. Please try again later.", ContentType.failure);
+      });
+    }
   }
 
   @override
@@ -151,11 +285,11 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
         mainAxisSpacing: 10,
         childAspectRatio: 3 / gridWidth,
       ),
-      itemCount: farms.length,
+      itemCount: teamList.length,
       itemBuilder: (context, index) {
-        var farm = farms[index];
+        var teams = teamList[index];
         return teamCard(
-          farm,
+          teams,
           fiveWidth,
           nameFontSize,
           typeFontSize,
@@ -165,7 +299,7 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
   }
 
   Widget teamCard(
-      final String farm,
+      final TeamModel team,
       final double fiveWidth,
       final double nameFontSize,
       final double typeFontSize,
@@ -217,7 +351,7 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  farm,
+                  team.name,
                   style: GoogleFonts.poppins(
                     fontSize: nameFontSize,
                   ),
@@ -226,13 +360,14 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
                   height: 10,
                 ),
                 Text(
-                  teamsWithTheirMembers[farm]?["status"],
+                  team.id.toString(),
                   style: GoogleFonts.poppins(
                     fontSize: typeFontSize,
                     fontWeight: FontWeight.w600,
-                    color: teamsWithTheirMembers[farm]?["status"] == "Active"
-                        ? borderColor
-                        : Colors.red,
+                    color: borderColor
+                        // == "active"
+                        // ? borderColor
+                        // : Colors.red,
                   ),
                 ),
               ],
@@ -246,7 +381,7 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Radio<String>(
-                  value: farm, // Unique value for this radio button
+                  value: team.id.toString(), // Unique value for this radio button
                   groupValue: selectedTeam, // Current selected value
                   activeColor: borderColor,
                   toggleable: true,
@@ -256,23 +391,24 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
                         selectedTeam = "None";
                       });
                     } else {
+                      fetchTeamMembers(value);
                       setState(() {
                         selectedTeam = value; // Update the selected option
                       });
                     }
                   },
                 ),
-                IconButton(
-                  onPressed: () {},
-                  padding: EdgeInsets.zero,
-                  constraints:
-                  const BoxConstraints(), // Remove default constraints
-                  icon: const Icon(
-                    Icons.settings,
-                    color: Colors.black,
-                    size: 20,
-                  ),
-                ),
+                // IconButton(
+                //   onPressed: () {},
+                //   padding: EdgeInsets.zero,
+                //   constraints:
+                //   const BoxConstraints(), // Remove default constraints
+                //   icon: const Icon(
+                //     Icons.settings,
+                //     color: Colors.black,
+                //     size: 20,
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -308,13 +444,11 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
         mainAxisSpacing: 10,
         childAspectRatio: 3 / gridWidth,
       ),
-      itemCount: teamsWithTheirMembers[selectedTeam]!['members'].length,
+      itemCount: teamMemberList.length,
       itemBuilder: (context, index) {
-        var members = teamsWithTheirMembers[selectedTeam]!['members'] as List;
-        var member = members[index] as Map<String, dynamic>;
+        var member = teamMemberList[index];
         return memberCard(
           member,
-          member, // Pass the same `member` map for simplicity.
           fiveWidth,
           nameFontSize,
           typeFontSize,
@@ -324,8 +458,7 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
   }
 
   Widget memberCard(
-      final Map<String, dynamic> member,
-      final Map<String, dynamic> assignedFarm,
+      final TeamMemberModel member,
       final double fiveWidth,
       final double nameFontSize,
       final double typeFontSize,
@@ -377,7 +510,7 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  member["name"]!,
+                  member.role,
                   style: GoogleFonts.poppins(
                     fontSize: nameFontSize,
                     fontWeight: FontWeight.w500,
@@ -385,46 +518,38 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
                 ),
                 SizedBox(height: fiveWidth * 1),
                 Text(
-                  "Farms:",
+                  "Status: ${member.isActive ? "Active" : "Inactive"}",
                   style: GoogleFonts.poppins(
                     fontSize: typeFontSize,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                SizedBox(height: fiveWidth * 1),
-                Text(
-                  "    ${(member["assigned_farms"] as List).join(", ")}",
-                  style: GoogleFonts.poppins(
-                      fontSize: typeFontSize,
-                      color: Colors.blueGrey,
-                      fontWeight: FontWeight.w300),
-                ),
               ],
             ),
           ),
-          Expanded(
+          const Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(right: 20, top: 10, bottom: 10),
+              padding: EdgeInsets.only(right: 20, top: 10, bottom: 10),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.online_prediction,
                     color: Colors.green,
                     size: 25,
                   ),
-                  IconButton(
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                    constraints:
-                    const BoxConstraints(), // Remove default constraints
-                    icon: const Icon(
-                      Icons.settings,
-                      color: Colors.black,
-                      size: 20,
-                    ),
-                  ),
+                  // IconButton(
+                  //   onPressed: () {},
+                  //   padding: EdgeInsets.zero,
+                  //   constraints:
+                  //   const BoxConstraints(), // Remove default constraints
+                  //   icon: const Icon(
+                  //     Icons.settings,
+                  //     color: Colors.black,
+                  //     size: 20,
+                  //   ),
+                  // ),
                 ],
               ),
             ),
@@ -462,7 +587,7 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
         ),
         const SizedBox(height: 30),
         SizedBox(
-            height: 100 * (farms.length / itemsPerRow).ceilToDouble(),
+            height: 100 * (teamList.length / itemsPerRow).ceilToDouble(),
             child: teamGrid(
               fiveWidth,
               gridValue,
@@ -480,7 +605,7 @@ class _ViewTeamsAndMembersState extends State<ViewTeamsAndMembers> {
         ),
         const SizedBox(height: 30),
         SizedBox(
-            height: 100 * (farms.length / itemsPerRow).ceilToDouble(),
+            height: 100 * (teamList.length / itemsPerRow).ceilToDouble(),
             child: memberGrid(
               fiveWidth,
               gridValue,

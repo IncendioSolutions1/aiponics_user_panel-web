@@ -82,6 +82,24 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
   void initState() {
     addFarmNotifier = ref.read(addFarmProvider.notifier);
     imageControllerNotifier = ref.read(imageControllerProvider.notifier);
+
+    if(ref.read(addFarmProvider).isEditing){
+
+      _farmName = TextEditingController(text: ref.read(addFarmProvider).farmModel.name);
+      _location = TextEditingController(text: ref.read(addFarmProvider).farmModel.location);
+      _farmArea = TextEditingController(text: ref.read(addFarmProvider).farmModel.farmsArea.toStringAsFixed(2));
+      _description = TextEditingController(text: ref.read(addFarmProvider).farmModel.farmDescription);
+      _cropType = TextEditingController(text: ref.read(addFarmProvider).farmModel.crops);
+      dev.log("check farm: ${ref.read(addFarmProvider).farmModel.toString()}");
+
+    }else{
+      _farmName = TextEditingController();
+      _location = TextEditingController();
+      _farmArea = TextEditingController();
+      _description = TextEditingController();
+      _cropType = TextEditingController();
+    }
+
     super.initState();
   }
 
@@ -156,10 +174,13 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
       });
       // Replace with your actual API URL and token
 
-      addFarmNotifier.updateFarmName(_farmName.text);
-      addFarmNotifier.updateFarmsArea(double.parse(double.parse(_farmArea.text).toStringAsFixed(2)));
-      addFarmNotifier.updateFarmLocation(_location.text);
-      addFarmNotifier.updateFarmsDescription(_description.text);
+
+        addFarmNotifier.updateFarmName(_farmName.text);
+        addFarmNotifier.updateFarmsArea(double.parse(double.parse(_farmArea.text).toStringAsFixed(2)));
+        addFarmNotifier.updateFarmLocation(_location.text);
+        addFarmNotifier.updateFarmsDescription(_description.text);
+
+
 
       if(ref.watch(addFarmProvider).isEditing ){
         bool status = await addFarmNotifier.updateFarmToServer();
@@ -239,25 +260,10 @@ class _AddFarmsState extends ConsumerState<AddFarms> {
     imageSelectTextColorShow = ref.watch(addFarmProvider).showErrorTextColorOnImage;
     imageSelectText = ref.watch(addFarmProvider).imageSelectText;
 
+
     if(ref.watch(addFarmProvider).isEditing){
-
-      _farmName = TextEditingController(text: ref.watch(addFarmProvider).farmModel.name);
-      _location = TextEditingController(text: ref.watch(addFarmProvider).farmModel.location);
-      _farmArea = TextEditingController(text: ref.watch(addFarmProvider).farmModel.farmsArea.toStringAsFixed(2));
-      _description = TextEditingController(text: ref.watch(addFarmProvider).farmModel.farmDescription);
       _cropType = TextEditingController(text: ref.watch(addFarmProvider).farmModel.crops);
-      dev.log("check farm: ${ref.watch(addFarmProvider).farmModel.toString()}");
-
-    }else{
-      _farmName = TextEditingController();
-      _location = TextEditingController();
-      _farmArea = TextEditingController();
-      _description = TextEditingController();
-      _cropType = TextEditingController();
-      dev.log("check farm false: ${ref.watch(addFarmProvider).farmModel.toString()}");
-
     }
-
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,

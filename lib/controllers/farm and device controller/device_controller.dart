@@ -75,7 +75,7 @@ class DeviceService {
           sendTimeout: const Duration(seconds: 10),
         ));
 
-        final response = await dio.put(
+        final response = await dio.post(
           addDeviceApi,
           data: dataToSend,
           options: Options(
@@ -183,7 +183,7 @@ class DeviceService {
           sendTimeout: const Duration(seconds: 10),
         ));
 
-        final response = await dio.post(
+        final response = await dio.put(
           "$updateDeviceApi${addDeviceModel.deviceModel.id}/",
           data: dataToSend,
           options: Options(
@@ -201,13 +201,13 @@ class DeviceService {
           log("Device_RESPONSE: Response Data: ${response.data}");
 
           CommonMethods.showSnackBarWithoutContext(
-              "Success", "Device added successfully", ContentType.success);
+              "Success", "Device updated successfully", ContentType.success);
           status = true;
         } else {
           log("Device_RESPONSE: Response error ${response.statusCode}");
           log("Device_RESPONSE: Response error ${response.data}");
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Error adding Device. Please try again.", ContentType.failure);
+              "Error", "Error updating Device. Please try again.", ContentType.failure);
         }
       } else {
         CommonMethods.showSnackBarWithoutContext(

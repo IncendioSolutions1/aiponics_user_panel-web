@@ -85,10 +85,15 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
   late bool _acquiredThroughUs;
   late bool _userOwnDevice;
 
+  bool isSaving = false;
+
   late AddDeviceNotifier addDeviceNotifier;
 
   void _saveData() async {
     if (_formKey.currentState!.validate() && (_acquiredThroughUs || _userOwnDevice)) {
+      setState(() {
+        isSaving = true;
+      });
       if (ref.watch(addDeviceProvider).acquiredThroughUs) {
         ref.read(addDeviceProvider.notifier).updateDeviceModel(imeiOrApiKey: _deviceEmei.text);
       }
@@ -125,6 +130,9 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
             ref, dosingSystem, climateControlSystem, conventionalSystem);
       }
 
+      setState(() {
+        isSaving = false;
+      });
     } else {
       // Validation failed, fields will be highlighted
       dev.log("Validation failed");
@@ -2179,31 +2187,31 @@ class _AddDeviceState extends ConsumerState<AddDevice> {
   }
 
   Widget saveDataButton(String responsive) {
-    return Tooltip(
-      message: ((_acquiredThroughUs || _userOwnDevice))
-          ? "Click to add Device with above information."
-          : "Complete all fields and then\nclick on this button to add a device.",
-      textAlign: TextAlign.center,
-      child: ElevatedButton(
-        onPressed: ((_acquiredThroughUs || _userOwnDevice))
-            ? () {
-                _saveData(); // Call the save image method when the button is pressed
-              }
-            : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              ((_acquiredThroughUs || _userOwnDevice)) ? buttonColor : Colors.grey, // Button color
-          padding: EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: responsive == "mobile" ? 15 : 20), // Adjust padding as needed
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(5), // Rounded corners
+    return SizedBox(
+      width: 150, // Set a specific width for the button
+      height: 48,
+      child: Tooltip(
+        message: ((_acquiredThroughUs || _userOwnDevice) && ! ref.watch(addDeviceProvider).areFarmsLoading)
+            ? "Click to add Device with above information."
+            : "Complete all fields and then\nclick on this button to add a device.",
+        textAlign: TextAlign.center,
+        child: ElevatedButton(
+          onPressed: ((_acquiredThroughUs || _userOwnDevice) && ! ref.watch(addDeviceProvider).areFarmsLoading)
+              ? () {
+                  _saveData(); // Call the save image method when the button is pressed
+                }
+              : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                ((_acquiredThroughUs || _userOwnDevice) && ! ref.watch(addDeviceProvider).areFarmsLoading) ? buttonColor : Colors.grey, // Button color
+            // padding: EdgeInsets.symmetric(
+            //     horizontal: 20,
+            //     vertical: responsive == "mobile" ? 15 : 20), // Adjust padding as needed
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Rounded corners
+            ),
           ),
-        ),
-        child: const SizedBox(
-          width: 200, // Set a specific width for the button
-          height: 30,
-          child: Center(
+          child: isSaving ? const CircularProgressIndicator(color: Colors.white,) : const Center(
             child: Text(
               "Save Device", // Button text
               style: TextStyle(

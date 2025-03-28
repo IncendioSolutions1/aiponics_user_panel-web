@@ -143,7 +143,7 @@ class TRoutes {
     {'text': 'Transaction History', 'icon': Icons.history, 'route': transactionHistory},
     {'text': 'Subscription Plans', 'icon': Icons.card_membership, 'route': subscriptionPlans},
 
-    {'text': 'HELP', 'isHeader': true},
-    {'text': 'Documentation', 'icon': Icons.description, 'route': documentation},
+    {'text': 'Others', 'isHeader': true},
+    {'text': 'Logout User', 'icon': Icons.exit_to_app, 'route': documentation},
   ];
 }
