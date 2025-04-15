@@ -62,7 +62,7 @@ class DeviceService {
 
     if (bearerToken == null) {
       CommonMethods.showSnackBarWithoutContext(
-          "Error", "An error occurred. Please try again later.", ContentType.failure);
+          "Error", "An error occurred. Please try again later.", "failure");
       return status;
     }
 
@@ -93,17 +93,17 @@ class DeviceService {
           log("Device_RESPONSE: Response Data: ${response.data}");
 
           CommonMethods.showSnackBarWithoutContext(
-              "Success", "Device added successfully", ContentType.success);
+              "Success", "Device added successfully", "success");
           status = true;
         } else {
           log("Device_RESPONSE: Response error ${response.statusCode}");
           log("Device_RESPONSE: Response error ${response.data}");
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Error adding Device. Please try again.", ContentType.failure);
+              "Error", "Error adding Device. Please try again.", "failure");
         }
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "Internet not available", ContentType.failure);
+            "Error", "Internet not available", "failure");
       }
     } on DioException catch (e) {
       log("Device_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
@@ -113,10 +113,10 @@ class DeviceService {
         CommonMethods.showSnackBarWithoutContext(
             "Devices limit reached",
             "Free plan allows only 1 Device. Upgrade to a paid plan to add more Devices.",
-            ContentType.failure);
+            "failure");
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       }
     }
 
@@ -170,7 +170,7 @@ class DeviceService {
 
     if (bearerToken == null) {
       CommonMethods.showSnackBarWithoutContext(
-          "Error", "An error occurred. Please try again later.", ContentType.failure);
+          "Error", "An error occurred. Please try again later.", "failure");
       return status;
     }
 
@@ -201,17 +201,17 @@ class DeviceService {
           log("Device_RESPONSE: Response Data: ${response.data}");
 
           CommonMethods.showSnackBarWithoutContext(
-              "Success", "Device updated successfully", ContentType.success);
+              "Success", "Device updated successfully", "success");
           status = true;
         } else {
           log("Device_RESPONSE: Response error ${response.statusCode}");
           log("Device_RESPONSE: Response error ${response.data}");
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Error updating Device. Please try again.", ContentType.failure);
+              "Error", "Error updating Device. Please try again.", "failure");
         }
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "Internet not available", ContentType.failure);
+            "Error", "Internet not available", "failure");
       }
     } on DioException catch (e) {
       log("Device_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
@@ -221,10 +221,10 @@ class DeviceService {
         CommonMethods.showSnackBarWithoutContext(
             "Devices limit reached",
             "Free plan allows only 1 Device. Upgrade to a paid plan to add more Devices.",
-            ContentType.failure);
+            "failure");
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       }
     }
 
@@ -241,7 +241,7 @@ class DeviceService {
 
     if (bearerToken == null) {
       CommonMethods.showSnackBarWithoutContext(
-          "Error", "An error occurred. Please try again later.", ContentType.failure);
+          "Error", "An error occurred. Please try again later.", "failure");
       return status;
     }
 
@@ -271,17 +271,17 @@ class DeviceService {
           log("Device_RESPONSE: Response Data: ${response.data}");
 
           CommonMethods.showSnackBarWithoutContext(
-              "Success", "Device added successfully", ContentType.success);
+              "Success", "Device added successfully", "success");
           status = true;
         } else {
           log("Device_RESPONSE: Response error ${response.statusCode}");
           log("Device_RESPONSE: Response error ${response.data}");
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Error adding Device. Please try again.", ContentType.failure);
+              "Error", "Error adding Device. Please try again.", "failure");
         }
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "Internet not available", ContentType.failure);
+            "Error", "Internet not available", "failure");
       }
     } on DioException catch (e) {
       log("Device_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
@@ -291,10 +291,10 @@ class DeviceService {
         CommonMethods.showSnackBarWithoutContext(
             "Devices limit reached",
             "Free plan allows only 1 Device. Upgrade to a paid plan to add more Devices.",
-            ContentType.failure);
+            "failure");
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       }
     }
 
@@ -307,7 +307,7 @@ class DeviceService {
     String? bearerToken = await fetchAccessToken();
     if (bearerToken == null) {
       CommonMethods.showSnackBarWithoutContext(
-          "Error", "An error occurred. Please try again later.", ContentType.failure);
+          "Error", "An error occurred. Please try again later.", "failure");
       return deviceModels;
     }
 
@@ -331,7 +331,9 @@ class DeviceService {
           );
 
           if (response2.statusCode == 200) {
-            List<dynamic> devicesData = response2.data;
+            dynamic rawData = response2.data;
+            List<dynamic> devicesData = rawData is String ? jsonDecode(rawData) : rawData;
+
             log('Devices Data for $farmId: ${jsonEncode(devicesData)}');
 
             deviceModels.clear();
@@ -352,10 +354,10 @@ class DeviceService {
         CommonMethods.showSnackBarWithoutContext(
             "Devices limit reached",
             "Free plan allows only 1 Device. Upgrade to a paid plan to add more Devices.",
-            ContentType.failure);
+            "failure");
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       }
     }
     return deviceModels;

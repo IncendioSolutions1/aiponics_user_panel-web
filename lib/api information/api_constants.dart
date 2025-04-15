@@ -25,3 +25,7 @@ const addTeamMemberApi = "${apiAddress}teams/";
 const viewMembersOfSingleTeamApi = "${apiAddress}teams/";
 
 const refreshTokenApi = "${apiAddress}token/refresh/";
+
+const showLiveData = "wss://control-panel.ai-ponics.com/ws/live-data/";
+
+const todosApi = "${apiAddress}todos/";

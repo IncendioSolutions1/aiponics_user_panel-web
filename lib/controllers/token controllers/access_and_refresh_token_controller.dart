@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'package:aiponics_web_app/api%20information/api_constants.dart';
-import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart' as secure;
 import 'package:get/get.dart';
@@ -94,11 +93,11 @@ Future<String?> refreshAccessToken() async {
 
   try {
     if (!await NetworkController.isInternetAvailable()) {
-      CommonMethods.showSnackBarWithoutContext("Error", "Internet not available", ContentType.failure);
+      CommonMethods.showSnackBarWithoutContext("Error", "Internet not available", "failure");
       return null;
     }
 
-    CommonMethods.showSnackBarWithoutContext("Info", "New Refresh Token called", ContentType.help);
+    CommonMethods.showSnackBarWithoutContext("Info", "New Refresh Token called", "help");
 
     final dio = Dio(BaseOptions(
       connectTimeout: const Duration(seconds: 10),
@@ -114,7 +113,7 @@ Future<String?> refreshAccessToken() async {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      CommonMethods.showSnackBarWithoutContext("Info", "Refresh Token called Success", ContentType.success);
+      CommonMethods.showSnackBarWithoutContext("Info", "Refresh Token called Success", "success");
       log("✅ Token Refresh Success: ${response.data}");
       final newToken = response.data['access_token'];
       await saveTokens(newToken, refreshToken, "true");
@@ -137,7 +136,7 @@ Future<void> logoutUser() async {
     Get.offAll(() => const LoginScreen());
   } catch (e) {
     log('Error: $e');
-    CommonMethods.showSnackBarWithoutContext("Logout Error", "Error while logging out. Please try again later", ContentType.failure);
+    CommonMethods.showSnackBarWithoutContext("Logout Error", "Error while logging out. Please try again later", "failure");
   }
 }
 

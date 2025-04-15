@@ -160,7 +160,7 @@ class DrawerScreenState extends ConsumerState<DrawerScreen> with RouteAware{
             // Desktop layout with permanent sidebar
             return Column(
               children: [
-                if(userInfoNotifier.role[0] != "loading" && userInfoNotifier.role[0] == "regular")
+                if(userInfoNotifier.userAccountInfoModel.role[0] != "loading" && userInfoNotifier.userAccountInfoModel.role[0].toLowerCase() == "regular")
                   Container(
                     height: 80,
                     width: double.infinity,

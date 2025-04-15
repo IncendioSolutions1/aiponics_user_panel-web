@@ -67,7 +67,7 @@ class CommonMethods{
   static void showSnackBarWithoutContext(
       String heading,
       String message,
-      ContentType contentType,
+      String contentType,
       ) {
     final BuildContext? context = navigatorKey.currentContext;
     if (context == null) {
@@ -153,26 +153,26 @@ class CommonMethods{
   }
 
 
-  static Color _getBackgroundColor(ContentType contentType) {
-    switch (contentType) {
-      case ContentType.success:
+  static Color _getBackgroundColor(String contentType) {
+    switch (contentType.toLowerCase()) {
+      case "success":
         return Colors.green;
-      case ContentType.failure:
+      case "failure":
         return Colors.red;
-      case ContentType.warning:
+      case "warning":
         return Colors.orange;
       default:
         return Colors.blue;
     }
   }
 
-  static IconData _getIcon(ContentType contentType) {
-    switch (contentType) {
-      case ContentType.success:
+  static IconData _getIcon(String contentType) {
+    switch (contentType.toLowerCase()) {
+      case "success":
         return Icons.check_circle;
-      case ContentType.failure:
+      case "failure":
         return Icons.error;
-      case ContentType.warning:
+      case "warning":
         return Icons.warning;
       default:
         return Icons.info;

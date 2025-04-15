@@ -62,7 +62,7 @@ class LoginController {
                 log("LOGIN_RESPONSE: 🔄 Api-Response-Log Refresh Token: $refreshToken");
 
                 CommonMethods.showSnackBarWithoutContext(
-                    "Success", "Login Successful", ContentType.success);
+                    "Success", "Login Successful", "success");
               });
             });
 
@@ -87,7 +87,7 @@ class LoginController {
           }
         } else {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Internet not available", ContentType.failure);
+              "Error", "Internet not available", "failure");
           return {'success': false, 'message': 'Internet not available'};
         }
       } on DioException catch (e) {

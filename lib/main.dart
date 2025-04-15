@@ -1,4 +1,3 @@
-import 'package:dart_fusion/dart_fusion.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -67,5 +66,21 @@ class MyApp extends ConsumerWidget {
         navigatorObservers: [RouteObserverCustom()], // Add custom route observer
       ),
     );
+  }
+}
+
+class DBehavior extends ScrollBehavior {
+  const DBehavior();
+
+  @override
+  Widget buildViewportChrome(BuildContext context, Widget child, AxisDirection axisDirection) {
+    // This override removes the default glow effect on overscroll.
+    return child;
+  }
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    // Optionally, you can define custom scroll physics if needed.
+    return const BouncingScrollPhysics();
   }
 }

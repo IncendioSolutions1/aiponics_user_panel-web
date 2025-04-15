@@ -117,7 +117,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
     if (bearerToken == null) {
       Future.delayed(const Duration(milliseconds: 100), () {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       });
       setState(() {
         isEmailLoading = false;
@@ -155,7 +155,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
           int userId = response.data["user_id"];
           log("CHECK_USER_RESPONSE: User found with ID: $userId");
           CommonMethods.showSnackBarWithoutContext(
-              "User Found", "User exists with id: $userId", ContentType.success);
+              "User Found", "User exists with id: $userId", "success");
           setState(() {
             userCheckStatus = "found";
             this.userId = userId;
@@ -164,12 +164,12 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
           // Unexpected structure on success response.
           log("CHECK_USER_RESPONSE: Unexpected response structure: ${response.data}");
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Unexpected response from server.", ContentType.failure);
+              "Error", "Unexpected response from server.", "failure");
         }
       } else {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Internet not available", ContentType.failure);
+              "Error", "Internet not available", "failure");
         });
       }
     } on DioException catch (e) {
@@ -181,14 +181,14 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
         String errorMsg = (e.response?.data as Map)["error"];
         log("CHECK_USER_RESPONSE: User not found. Error: $errorMsg");
         CommonMethods.showSnackBarWithoutContext(
-            "User Not Found", errorMsg, ContentType.failure);
+            "User Not Found", errorMsg, "failure");
         setState(() {
           userCheckStatus = "not-found";
         });
       } else {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Failed", "Failed to fetch member's details from server.", ContentType.failure);
+              "Failed", "Failed to fetch member's details from server.", "failure");
         });
       }
     }
@@ -207,7 +207,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
     if (bearerToken == null) {
       Future.delayed(const Duration(milliseconds: 100), () {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       });
       setState(() {
         isEmailLoading = false;
@@ -244,7 +244,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
       } else {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Internet not available", ContentType.failure);
+              "Error", "Internet not available", "failure");
         });
       }
     } on DioException catch (e) {
@@ -256,14 +256,14 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
         String errorMsg = (e.response?.data as Map)["detail"];
         log("CHECK_INVITE_RESPONSE: User not found. Error: $errorMsg");
         CommonMethods.showSnackBarWithoutContext(
-            "Invitation not sent", errorMsg, ContentType.failure);
+            "Invitation not sent", errorMsg, "failure");
         setState(() {
           userCheckStatus = "not-found";
         });
       } else {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Failed", "Failed to send invitation to member.", ContentType.failure);
+              "Failed", "Failed to send invitation to member.", "failure");
         });
       }
     }
@@ -283,7 +283,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
       // Replace selectedUserId and selectedTeamId with your actual variable names.
       if (userId == 0 || selectedTeamId == 0) {
         CommonMethods.showSnackBarWithoutContext(
-            "Missing Information", "User or Team ID is missing.", ContentType.failure);
+            "Missing Information", "User or Team ID is missing.", "failure");
         setState(() {
           isLoading = false;
         });
@@ -294,7 +294,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
       if (bearerToken == null) {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "An error occurred. Please try again later.", ContentType.failure);
+              "Error", "An error occurred. Please try again later.", "failure");
         });
         setState(() {
           isLoading = false;
@@ -332,7 +332,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
               CommonMethods.showSnackBarWithoutContext(
                   "Team Member Added Successfully",
                   "The team member has been added successfully.",
-                  ContentType.success);
+                  "success");
             });
             // Clear or reset fields if necessary
             setState(() {
@@ -346,12 +346,12 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
             CommonMethods.showSnackBarWithoutContext(
                 "Failed to add Team Member",
                 "Failed to add team member to the server.",
-                ContentType.failure);
+                "failure");
           }
         } else {
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Error", "Internet not available", ContentType.failure);
+                "Error", "Internet not available", "failure");
           });
         }
       } on DioException catch (e) {
@@ -362,7 +362,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
                   "One or more farms in the list are already being managed by other teams.")) {
             // If you expect a similar error here for team members (or adjust accordingly)
             CommonMethods.showSnackBarWithoutContext(
-                "Failed to add Team Member", "${e.response?.data["detail"]}", ContentType.failure);
+                "Failed to add Team Member", "${e.response?.data["detail"]}", "failure");
           } else if (e.response?.data != null &&
               e.response?.data is Map &&
               (e.response?.data as Map).containsKey("error")) {
@@ -370,10 +370,10 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
             String errorMsg = (e.response?.data as Map)["error"];
             log("TEAM_MEMBER_ADD_RESPONSE: Error: $errorMsg");
             CommonMethods.showSnackBarWithoutContext(
-                "Failed to add Team Member", errorMsg, ContentType.failure);
+                "Failed to add Team Member", errorMsg, "failure");
           } else {
             CommonMethods.showSnackBarWithoutContext(
-                "Failed to add Team Member", "Failed to add team member to the server.", ContentType.failure);
+                "Failed to add Team Member", "Failed to add team member to the server.", "failure");
           }
         });
       }
@@ -395,7 +395,7 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
       if (bearerToken == null) {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "An error occurred. Please try again later.", ContentType.failure);
+              "Error", "An error occurred. Please try again later.", "failure");
         });
         return ;
       }
@@ -429,27 +429,27 @@ class _AddATeamMemberState extends ConsumerState<AddATeamMember> {
 
             Future.delayed(const Duration(milliseconds: 100), () {
               CommonMethods.showSnackBarWithoutContext(
-                  "Success", "${teamsList.length} Teams fetched successfully", ContentType.success);
+                  "Success", "${teamsList.length} Teams fetched successfully", "success");
             });
           } else {
             log("TEAMS_FETCH_RESPONSE: Response error ${response.statusCode}");
             log("TEAMS_FETCH_RESPONSE: Response error ${response.data}");
             Future.delayed(const Duration(milliseconds: 100), () {
               CommonMethods.showSnackBarWithoutContext(
-                  "Error", "Error fetching teams. Please try again.", ContentType.failure);
+                  "Error", "Error fetching teams. Please try again.", "failure");
             });
           }
         } else {
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Error", "Internet not available", ContentType.failure);
+                "Error", "Internet not available", "failure");
           });
         }
       } on DioException catch (e) {
         log("TEAMS_FETCH_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "An error occurred. Please try again later.", ContentType.failure);
+              "Error", "An error occurred. Please try again later.", "failure");
         });
       }
 

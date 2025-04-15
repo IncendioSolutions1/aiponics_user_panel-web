@@ -2,7 +2,6 @@ import 'dart:developer';
 import 'package:aiponics_web_app/api%20information/api_constants.dart';
 import 'package:aiponics_web_app/controllers/common_methods.dart';
 import 'package:aiponics_web_app/controllers/network%20controllers/network_controller.dart';
-import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:dio/dio.dart';
 import '../../models/farm and devices models/farm_model.dart';
 import '../token controllers/access_and_refresh_token_controller.dart'; // Import your snackbar utility
@@ -31,7 +30,7 @@ class FarmService {
 
     if (bearerToken == null) {
       CommonMethods.showSnackBarWithoutContext(
-          "Error", "An error occurred. Please try again later.", ContentType.failure);
+          "Error", "An error occurred. Please try again later.", "failure");
       return farm;
     }
 
@@ -61,17 +60,17 @@ class FarmService {
           log("FARM_RESPONSE: Response Data: ${response.data}");
 
           CommonMethods.showSnackBarWithoutContext(
-              "Success", "Farm added successfully", ContentType.success);
+              "Success", "Farm added successfully", "success");
           farm = FarmModel.fromJson(response.data);
         } else {
           log("FARM_RESPONSE: Response error ${response.statusCode}");
           log("FARM_RESPONSE: Response error ${response.data}");
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Error adding farm. Please try again.", ContentType.failure);
+              "Error", "Error adding farm. Please try again.", "failure");
         }
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "Internet not available", ContentType.failure);
+            "Error", "Internet not available", "failure");
       }
     } on DioException catch (e) {
       log("FARM_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
@@ -81,10 +80,10 @@ class FarmService {
         CommonMethods.showSnackBarWithoutContext(
             "Farms limit reached",
             "Free plan allows only 1 farm. Upgrade to a paid plan to add more farms.",
-            ContentType.failure);
+            "failure");
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       }
     }
 
@@ -99,7 +98,7 @@ class FarmService {
 
     if (bearerToken == null) {
       CommonMethods.showSnackBarWithoutContext(
-          "Error", "An error occurred. Please try again later.", ContentType.failure);
+          "Error", "An error occurred. Please try again later.", "failure");
       return status;
     }
 
@@ -129,17 +128,17 @@ class FarmService {
           log("FARM_RESPONSE: Response Data: ${response.data}");
 
           CommonMethods.showSnackBarWithoutContext(
-              "Success", "Farm updated successfully", ContentType.success);
+              "Success", "Farm updated successfully", "success");
           status = true;
         } else {
           log("FARM_RESPONSE: Response error ${response.statusCode}");
           log("FARM_RESPONSE: Response error ${response.data}");
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Error adding farm. Please try again.", ContentType.failure);
+              "Error", "Error adding farm. Please try again.", "failure");
         }
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "Internet not available", ContentType.failure);
+            "Error", "Internet not available", "failure");
       }
     } on DioException catch (e) {
       log("FARM_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
@@ -149,10 +148,10 @@ class FarmService {
         CommonMethods.showSnackBarWithoutContext(
             "Farms limit reached",
             "Free plan allows only 1 farm. Upgrade to a paid plan to add more farms.",
-            ContentType.failure);
+            "failure");
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       }
     }
 
@@ -167,7 +166,7 @@ class FarmService {
     if (bearerToken == null) {
       Future.delayed(const Duration(milliseconds: 100), () {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       });
       return farmModels;
     }
@@ -198,27 +197,27 @@ class FarmService {
 
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Success", "${farmModels.length} Farms fetched successfully", ContentType.success);
+                "Success", "${farmModels.length} Farms fetched successfully", "success");
           });
         } else {
           log("FARM_FETCH_RESPONSE: Response error ${response.statusCode}");
           log("FARM_FETCH_RESPONSE: Response error ${response.data}");
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Error", "Error adding farm. Please try again.", ContentType.failure);
+                "Error", "Error adding farm. Please try again.", "failure");
           });
         }
       } else {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Internet not available", ContentType.failure);
+              "Error", "Internet not available", "failure");
         });
       }
     } on DioException catch (e) {
       log("FARM_FETCH_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
       Future.delayed(const Duration(milliseconds: 100), () {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       });
     }
 
@@ -231,7 +230,7 @@ class FarmService {
     String? bearerToken = await fetchAccessToken();
     if (bearerToken == null) {
       CommonMethods.showSnackBarWithoutContext(
-          "Error", "An error occurred. Please try again later.", ContentType.failure);
+          "Error", "An error occurred. Please try again later.", "failure");
       return status;
     }
 
@@ -258,22 +257,22 @@ class FarmService {
         if (response.statusCode == 200 || response.statusCode == 204) {
           log("FARM_DELETE_RESPONSE: Farm deleted successfully");
           CommonMethods.showSnackBarWithoutContext(
-              "Success", "Farm deleted successfully", ContentType.success);
+              "Success", "Farm deleted successfully", "success");
           status = true;
         } else {
           log("FARM_DELETE_RESPONSE: Response error ${response.statusCode}");
           log("FARM_DELETE_RESPONSE: Response error ${response.data}");
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Error deleting farm. Please try again.", ContentType.failure);
+              "Error", "Error deleting farm. Please try again.", "failure");
         }
       } else {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "Internet not available", ContentType.failure);
+            "Error", "Internet not available", "failure");
       }
     } on DioException catch (e) {
       log("FARM_DELETE_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
       CommonMethods.showSnackBarWithoutContext(
-          "Error", "An error occurred. Please try again later.", ContentType.failure);
+          "Error", "An error occurred. Please try again later.", "failure");
     }
 
     return status;

@@ -97,7 +97,7 @@ class _SoilBasedDashboardState extends ConsumerState<SoilBasedDashboard>
     fiveWidth = screenNotifier['fiveWidth'];
     remainingWidth = screenNotifier['screenRemainingWidth'];
     fullWidth = screenNotifier['screenFullWidth'];
-    showAds = ref.watch(userAccountInfoProvider).role[0] == 'regular';
+    showAds = ref.watch(userAccountInfoProvider).userAccountInfoModel.role[0] == 'regular';
 
 
   }

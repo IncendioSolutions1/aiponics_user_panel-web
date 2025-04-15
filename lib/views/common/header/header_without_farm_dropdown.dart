@@ -128,7 +128,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
 
   }
 
-  Widget userNameRoleAndPicture(UserAccountInfoModel userState, Color boxHeadingColor) {
+  Widget userNameRoleAndPicture(UserAccount userState, Color boxHeadingColor) {
     return Row(
       children: [
         Container(
@@ -142,7 +142,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(50),
             child: Image.asset(
-              userState.profilePicture ?? "assets/images/logo.jpeg",
+              userState.userAccountInfoModel.profilePicture ?? "assets/images/logo.jpeg",
               width: 50,
               height: 50,
               fit: BoxFit.cover,
@@ -154,7 +154,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "${userState.firstName} ${userState.lastName}",
+              "${userState.userAccountInfoModel.firstName} ${userState.userAccountInfoModel.lastName}",
               style: GoogleFonts.nunitoSans(
                 textStyle: TextStyle(
                   fontSize: 14,
@@ -165,7 +165,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              userState.role[0],
+              userState.userAccountInfoModel.role[0],
               style: GoogleFonts.nunitoSans(
                 textStyle: TextStyle(
                   fontSize: 12,

@@ -24,7 +24,6 @@ class UserAccountInfoModel {
   final int plan;
   final List<dynamic> groups;
   final List<dynamic> userPermissions;
-  final bool isLoading;
 
   UserAccountInfoModel({
     required this.id,
@@ -50,7 +49,6 @@ class UserAccountInfoModel {
     required this.plan,
     required this.groups,
     required this.userPermissions,
-    this.isLoading = true,
   });
 
   factory UserAccountInfoModel.fromJson(Map<String, dynamic> json) {
@@ -109,4 +107,11 @@ class UserAccountInfoModel {
     };
   }
 
+}
+
+class UserAccount{
+  final UserAccountInfoModel userAccountInfoModel;
+  bool isLoading;
+  bool hasError;
+  UserAccount({required this.userAccountInfoModel, this.isLoading = true, required this.hasError});
 }

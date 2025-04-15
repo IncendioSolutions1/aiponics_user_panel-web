@@ -71,7 +71,7 @@ class RegisterController {
           };
         } else {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Internet not available", ContentType.failure);
+              "Error", "Internet not available", "failure");
           return {'success': false, 'message': 'Internet not available'};
         }
       } on DioException catch (e) {

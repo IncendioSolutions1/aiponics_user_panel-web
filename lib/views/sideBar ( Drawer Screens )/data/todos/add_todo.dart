@@ -1,86 +1,27 @@
 import 'dart:developer';
 
+import 'package:aiponics_web_app/models/todos/todos_model.dart';
+import 'package:aiponics_web_app/provider/todo%20provider/todo_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-class AddTodo extends StatefulWidget {
-  const AddTodo({super.key});
+
+class AddTodo extends ConsumerStatefulWidget {
+  final bool isEditing;
+  const AddTodo({super.key, this.isEditing = false});
 
   @override
-  State<AddTodo> createState() => _AddTodoState();
+  ConsumerState<AddTodo> createState() => _AddTodoState();
 }
 
-class _AddTodoState extends State<AddTodo> {
-  String name = "Ahmad Ali";
-
-  List<Map<String, dynamic>> todoList = [
-    {
-      "title": "Complete Flutter Web Dashboard",
-      "description":
-          "Finish the dashboard management for the agriculture app with a focus on UI improvements and graph display features.",
-      "priority": "High", // High, Medium, Low
-      "status": "In Progress", // In Progress, Completed, Pending
-      "createdOn": "2024-09-30",
-    },
-    {
-      "title": "Update Database Schema",
-      "description":
-          "Modify the database structure to support new fields in the user profile section.",
-      "priority": "Medium",
-      "status": "In Progress",
-      "createdOn": "2024-09-28",
-    },
-    {
-      "title": "Design Marketing Materials",
-      "description":
-          "Create social media banners and email templates for the upcoming product launch.",
-      "priority": "Low",
-      "status": "Completed",
-      "createdOn": "10 days ago",
-    },
-    {
-      "title": "Fix Notification Bug",
-      "description":
-          "Resolve the issue where users are not receiving event notifications in the app.",
-      "priority": "High",
-      "status": "In Progress",
-      "createdOn": "2024-09-29",
-    },
-    {
-      "title": "Write User Documentation",
-      "description":
-          "Prepare a detailed user manual for the farm monitoring system with step-by-step instructions.",
-      "priority": "Medium",
-      "status": "Pending",
-      "createdOn": "2024-09-26",
-    },
-    {
-      "title": "Write User Documentation",
-      "description":
-          "Prepare a detailed user manual for the farm monitoring system with step-by-step instructions.",
-      "priority": "Medium",
-      "status": "Completed",
-      "createdOn": "2 days ago",
-    },
-  ];
-
-  late int totalTodos;
-  late int completedTodo;
-  late int pendingTodos;
-  late int inProgressTodos;
-
-  late double completedPercentage;
-  late double pendingPercentage;
-  late double inProgressPercentage;
-
+class _AddTodoState extends ConsumerState<AddTodo> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController();
-  DateTime? _selectedDate;
-  String _selectedPriority = 'Low'; // Default value
-  double _textFieldHeight = 200.0; // Initial height for text field
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _dateController = TextEditingController();
+  late String _selectedPriority;
 
   void _pickDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -89,490 +30,243 @@ class _AddTodoState extends State<AddTodo> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _dateController.text = DateFormat('d MMM, yyyy').format(picked);
-      });
+    if (picked != null) {
+      _dateController.text = DateFormat('yyyy-MM-dd')
+.format(picked);
     }
   }
 
   void _saveTodo() {
     if (_formKey.currentState!.validate()) {
-      // Process the input (e.g., save the data to a database or display it in a list)
       log("Title: ${_titleController.text}");
-      log("Date: ${_selectedDate != null ? DateFormat('yyyy-MM-dd').format(_selectedDate!) : 'No date selected'}");
+      log("Date: ${_dateController.text}");
       log("Priority: $_selectedPriority");
       log("Description: ${_descriptionController.text}");
+
+      if(widget.isEditing){
+        ref.read(todosProvider.notifier).updateTodo(
+            TodoModel(
+              id: ref.watch(todosProvider).todoForEditingOrAdding!.id,
+              dueDate: _dateController.text,
+              createdOn : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+              priority: _selectedPriority.toLowerCase(),
+              title: _titleController.text,
+              status: 'pending',
+              taskDescription: _descriptionController.text,
+            ));
+      }else{
+        ref.read(todosProvider.notifier).addTodo(
+            TodoModel(
+                id: 0,
+              dueDate: _dateController.text,
+              createdOn : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+              priority: _selectedPriority.toLowerCase(),
+              title: _titleController.text,
+              status: 'pending',
+              taskDescription: _descriptionController.text,
+            ));
+      }
+
     }
   }
 
   void _setPriority(String priority) {
-    setState(() {
-      _selectedPriority = priority;
-    });
+    ref.read(todosProvider.notifier).updateTodoForEditingOrAdding(
+      TodoModel(id: 0,               createdOn : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          dueDate: _dateController.text, priority: priority, title: _titleController.text, status: "pending", taskDescription: _descriptionController.text)
+    );
   }
 
   @override
   void initState() {
-    totalTodos = todoList.length;
-    completedTodo =
-        todoList.where((todo) => todo['status'] == 'Completed').length;
-    pendingTodos = todoList.where((todo) => todo['status'] == 'Pending').length;
-    inProgressTodos =
-        todoList.where((todo) => todo['status'] == 'In Progress').length;
+    final todoProvider = ref.read(todosProvider);
+    if (widget.isEditing && todoProvider.todoForEditingOrAdding != null) {
+      final selected = todoProvider.todoForEditingOrAdding!;
+      _titleController.text = selected.title;
+      _descriptionController.text = selected.taskDescription;
+      _dateController.text = DateFormat('yyyy-MM-dd')
+.format(
+        DateFormat('yyyy-MM-dd')
+.parse(selected.dueDate),
+      );
+      _selectedPriority = selected.priority;
+    }
 
-    completedPercentage =
-        totalTodos > 0 ? (completedTodo / totalTodos) * 100 : 0;
-    pendingPercentage = totalTodos > 0 ? (pendingTodos / totalTodos) * 100 : 0;
-    inProgressPercentage =
-        totalTodos > 0 ? (inProgressTodos / totalTodos) * 100 : 0;
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get the screen size to make the layout responsive
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
 
-    final fiveWidth = screenWidth * 0.003434;
-    final fiveHeight = screenHeight * 0.005681;
+    _selectedPriority = ref.watch(todosProvider).todoForEditingOrAdding?.priority ?? 'Low';
 
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (_, constraints) {
-          final width = MediaQuery.of(context).size.width;
-
-          if (constraints.maxWidth >= 700) {
-            return Padding(
-              padding: const EdgeInsets.only(
-                top: 80.0,
-                left: 100,
-                right: 50,
-                bottom: 50,
-              ),
-              child: desktopWidget(width, fiveWidth, fiveHeight),
-            );
-          } else {
-            return Padding(
-              padding: const EdgeInsets.only(
-                top: 80.0,
-                left: 100,
-                right: 50,
-                bottom: 50,
-              ),
-              child: mobileWidget(width, fiveWidth, fiveHeight),
-            );
-          }
-        },
+      body: Form(
+        key: _formKey,
+        child: LayoutBuilder(builder: (_, constraints) {
+          final isMobile = constraints.maxWidth < 700;
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(100, 80, 50, 50),
+            child: _mainContent(isMobile),
+          );
+        }),
       ),
     );
   }
 
-  Widget mainHeading(double fontSize) {
+
+  Widget _buildTextLabel(String text) {
     return Text(
-      "Add a New Todo",
-      style:
-          GoogleFonts.domine(fontSize: fontSize, fontWeight: FontWeight.w500),
+      text,
+      style: GoogleFonts.raleway(fontSize: 18, letterSpacing: 2),
     );
   }
 
-  Widget desktopWidget(double width, double fiveWidth, double fiveHeight) {
-    Color boxColor = Theme.of(context).colorScheme.onSecondaryFixed;
+  Widget _buildPrioritySelector(bool isMobile) {
+    final priorities = [
+      {'label': 'High', 'color': Colors.red},
+      {'label': 'Medium', 'color': Colors.orange},
+      {'label': 'Low', 'color': Colors.green},
+    ];
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize:
-            MainAxisSize.min, // This ensures the dialog isn't fullscreen
-        children: [
-          mainHeading(30),
-          const SizedBox(
-            height: 60,
-          ),
-          // Title Field
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final children = priorities.map((item) {
+      final label = item['label'] as String;
+      final color = item['color'] as Color;
+
+      return Padding(
+        padding: EdgeInsets.only(bottom: isMobile ? 5 : 0),
+        child: SizedBox(
+          width: 180,
+          child: Row(
             children: [
-              Text(
-                "Title",
-                style: GoogleFonts.domine(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
+              Checkbox(
+                value: _selectedPriority == label,
+                onChanged: (_) => _setPriority(label),
+                activeColor: color,
               ),
-              const SizedBox(
-                height: 15,
-              ),
-              TextFormField(
-                controller: _titleController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
-              ),
+              Text(label, style: TextStyle(color: color)),
             ],
           ),
-          const SizedBox(height: 40),
-          // Select Date Field
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Select Date",
-                style: GoogleFonts.domine(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 15),
-              TextFormField(
-                onTap: () {
-                  log("Clicked date picker field");
-                  _pickDate(context);
-                },
-                controller: _dateController,
-                readOnly: true, // User cannot manually type in the field
-                decoration: const InputDecoration(
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a date';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 40),
-          // Priority
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Priority",
-                style: GoogleFonts.domine(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 15),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SizedBox(
-                      width: 180, child: _buildCheckbox('High', Colors.red)),
-                  SizedBox(
-                      width: 180,
-                      child: _buildCheckbox('Medium', Colors.orange)),
-                  SizedBox(
-                      width: 180, child: _buildCheckbox('Low', Colors.green)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 40),
-          // Description Field
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Task Description",
-                style: GoogleFonts.domine(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 15),
-              GestureDetector(
-                onPanUpdate: (details) {
-                  setState(() {
-                    // Drag to resize the height of the text field
-                    _textFieldHeight += details.delta.dy;
-                  });
-                },
-                child: Container(
-                  height: _textFieldHeight,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextFormField(
-                    controller: _descriptionController,
-                    maxLines: null, // Allows text field to grow
-                    expands: true, // Fills the available container height
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Start writing here......',
-                      hintStyle: TextStyle(
-                        fontSize: 13,
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a description';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          // Save Button
-          ElevatedButton(
-            onPressed: _saveTodo,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: boxColor, // Background color
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 30, vertical: 15), // Button padding
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30), // Rounded corners
-              ),
-              elevation: 10, // Shadow elevation
-              shadowColor: Colors.black.withOpacity(0.3), // Shadow color
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.save, color: Colors.white), // Save icon
-                SizedBox(width: 10),
-                Text(
-                  'Save ToDo',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+        ),
+      );
+    }).toList();
+
+    return isMobile
+        ? Column(children: children)
+        : Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: children);
   }
 
-  Widget mobileWidget(double width, double fiveWidth, double fiveHeight) {
-    Color boxColor = Theme.of(context).colorScheme.onSecondaryFixed;
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize:
-            MainAxisSize.min, // This ensures the dialog isn't fullscreen
-        children: [
-          mainHeading(30),
-          const SizedBox(
-            height: 60,
-          ),
-          // Title Field
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Title",
-                style: GoogleFonts.domine(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              TextFormField(
-                controller: _titleController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 40),
-          // Select Date Field
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Select Date",
-                style: GoogleFonts.domine(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 15),
-              TextFormField(
-                onTap: () {
-                  log("Clicked date picker field");
-                  _pickDate(context);
-                },
-                controller: _dateController,
-                readOnly: true, // User cannot manually type in the field
-                decoration: const InputDecoration(
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a date';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 40),
-          // Priority
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Priority",
-                style: GoogleFonts.domine(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 15),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SizedBox(
-                      width: 180, child: _buildCheckbox('High', Colors.red)),
-                  const SizedBox(
-                    height: 5,
-                  ),
-                  SizedBox(
-                      width: 180,
-                      child: _buildCheckbox('Medium', Colors.orange)),
-                  const SizedBox(
-                    height: 5,
-                  ),
-                  SizedBox(
-                      width: 180, child: _buildCheckbox('Low', Colors.green)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 40),
-          // Description Field
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Task Description",
-                style: GoogleFonts.domine(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 15),
-              GestureDetector(
-                onPanUpdate: (details) {
-                  setState(() {
-                    // Drag to resize the height of the text field
-                    _textFieldHeight += details.delta.dy;
-                  });
-                },
-                child: Container(
-                  height: _textFieldHeight,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextFormField(
-                    controller: _descriptionController,
-                    maxLines: null, // Allows text field to grow
-                    expands: true, // Fills the available container height
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Start writing here......',
-                      hintStyle: TextStyle(
-                        fontSize: 13,
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a description';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          // Save Button
-          ElevatedButton(
-            onPressed: _saveTodo,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: boxColor, // Background color
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 30, vertical: 15), // Button padding
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30), // Rounded corners
-              ),
-              elevation: 10, // Shadow elevation
-              shadowColor: Colors.black.withOpacity(0.3), // Shadow color
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.save, color: Colors.white), // Save icon
-                SizedBox(width: 10),
-                Text(
-                  'Save ToDo',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCheckbox(String priorityLabel, Color color) {
-    return CheckboxListTile(
-      title: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(priorityLabel),
-        ],
-      ),
-      activeColor: Colors.green,
-      value: _selectedPriority == priorityLabel,
-      onChanged: (bool? value) {
-        if (value == true) {
-          _setPriority(priorityLabel);
-        }
+  Widget _buildDescriptionField() {
+    return GestureDetector(
+      onPanUpdate: (details) {
+        ref.read(todosProvider.notifier).updateDescriptionFieldHeight(details);
       },
-      controlAffinity:
-          ListTileControlAffinity.trailing, // Checkbox before the label
+      child: Container(
+        height: ref.watch(todosProvider).textFieldHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: TextFormField(
+          controller: _descriptionController,
+          maxLines: null,
+          expands: true,
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            hintText: 'Start writing here......',
+            hintStyle: TextStyle(fontSize: 13),
+          ),
+          validator: (value) =>
+          value == null || value.isEmpty ? 'Please enter a description' : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton(Color boxColor) {
+    return ElevatedButton(
+      onPressed: _saveTodo,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: boxColor,
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 10,
+        shadowColor: Colors.black.withAlpha(75),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.save, color: Colors.white),
+          SizedBox(width: 10),
+          Text('Save ToDo',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
+  Widget _mainContent(bool isMobile) {
+    final boxColor = Theme.of(context).colorScheme.onSecondaryFixed;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Add a New Todo",
+              style: GoogleFonts.raleway(fontSize: 30, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 60),
+
+          _buildTextLabel("Title"),
+          const SizedBox(height: 15),
+          _buildTextField(
+            controller: _titleController,
+            hint: "Enter title",
+            validator: (val) => val == null || val.isEmpty ? 'Please enter a title' : null,
+          ),
+
+          const SizedBox(height: 40),
+          _buildTextLabel("Select Due Date"),
+          const SizedBox(height: 15),
+          _buildTextField(
+            controller: _dateController,
+            readOnly: true,
+            onTap: () => _pickDate(context),
+            decoration: const InputDecoration(suffixIcon: Icon(Icons.calendar_today)),
+            validator: (val) => val == null || val.isEmpty ? 'Please enter a date' : null, hint: '',
+          ),
+
+          const SizedBox(height: 40),
+          _buildTextLabel("Priority"),
+          const SizedBox(height: 15),
+          _buildPrioritySelector(isMobile),
+
+          const SizedBox(height: 40),
+          _buildTextLabel("Task Description"),
+          const SizedBox(height: 15),
+          _buildDescriptionField(),
+
+          const SizedBox(height: 32),
+          _buildSaveButton(boxColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    String? Function(String?)? validator,
+    InputDecoration? decoration,
+  }) {
+    return TextFormField(
+      controller: controller,
+      readOnly: readOnly,
+      onTap: onTap,
+      validator: validator,
+      decoration: decoration ?? const InputDecoration(),
     );
   }
 }

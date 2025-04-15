@@ -49,7 +49,7 @@ class _ViewTeamsAndMembersState extends ConsumerState<ViewTeamsAndMembers> {
     if (bearerToken == null) {
       Future.delayed(const Duration(milliseconds: 100), () {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       });
       return;
     }
@@ -91,7 +91,7 @@ class _ViewTeamsAndMembersState extends ConsumerState<ViewTeamsAndMembers> {
 
             Future.delayed(const Duration(milliseconds: 100), () {
               CommonMethods.showSnackBarWithoutContext(
-                  "Success", "Team fetched successfully", ContentType.success);
+                  "Success", "Team fetched successfully", "success");
             });
           } else {
             log("TEAM_FETCH_RESPONSE: Unexpected data format: ${response.data}");
@@ -101,27 +101,27 @@ class _ViewTeamsAndMembersState extends ConsumerState<ViewTeamsAndMembers> {
 
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Success", "Team fetched successfully", ContentType.success);
+                "Success", "Team fetched successfully", "success");
           });
         } else {
           log("TEAM_FETCH_RESPONSE: Response error ${response.statusCode}");
           log("TEAM_FETCH_RESPONSE: Response error ${response.data}");
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Error", "Error adding farm. Please try again.", ContentType.failure);
+                "Error", "Error adding farm. Please try again.", "failure");
           });
         }
       } else {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Internet not available", ContentType.failure);
+              "Error", "Internet not available", "failure");
         });
       }
     } on DioException catch (e) {
       log("TEAM_FETCH_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
       Future.delayed(const Duration(milliseconds: 100), () {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       });
     }
 
@@ -135,7 +135,7 @@ class _ViewTeamsAndMembersState extends ConsumerState<ViewTeamsAndMembers> {
     if (bearerToken == null) {
       Future.delayed(const Duration(milliseconds: 100), () {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       });
       return;
     }
@@ -173,27 +173,27 @@ class _ViewTeamsAndMembersState extends ConsumerState<ViewTeamsAndMembers> {
 
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Success", "Member fetched successfully", ContentType.success);
+                "Success", "Member fetched successfully", "success");
           });
         } else {
           log("TEAM_MEMBER_FETCH_RESPONSE: Response error ${response.statusCode}");
           log("TEAM_MEMBER_FETCH_RESPONSE: Response error ${response.data}");
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Error", "Error adding farm. Please try again.", ContentType.failure);
+                "Error", "Error adding farm. Please try again.", "failure");
           });
         }
       } else {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "Internet not available", ContentType.failure);
+              "Error", "Internet not available", "failure");
         });
       }
     } on DioException catch (e) {
       log("TEAM_MEMBER_FETCH_RESPONSE: Request failed: ${e.message} - ${e.response?.data}");
       Future.delayed(const Duration(milliseconds: 100), () {
         CommonMethods.showSnackBarWithoutContext(
-            "Error", "An error occurred. Please try again later.", ContentType.failure);
+            "Error", "An error occurred. Please try again later.", "failure");
       });
     }
   }

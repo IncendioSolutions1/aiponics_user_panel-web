@@ -1,70 +1,26 @@
 import 'dart:developer';
 
+import 'package:aiponics_web_app/models/todos/todos_model.dart';
+import 'package:aiponics_web_app/provider/todo%20provider/todo_provider.dart';
 import 'package:aiponics_web_app/views/sideBar ( Drawer Screens )/data/todos/add_todo.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
-class ViewTodos extends StatefulWidget {
+class ViewTodos extends ConsumerStatefulWidget {
   const ViewTodos({super.key});
 
   @override
-  State<ViewTodos> createState() => _ViewTodosState();
+  ConsumerState<ViewTodos> createState() => _ViewTodosState();
 }
 
-class _ViewTodosState extends State<ViewTodos> {
+class _ViewTodosState extends ConsumerState<ViewTodos> {
   String name = "Ahmad Ali";
 
-  List<Map<String, dynamic>> todoList = [
-    {
-      "title": "Complete Flutter Web Dashboard",
-      "description":
-          "Finish the dashboard management for the agriculture app with a focus on UI improvements and graph display features.",
-      "priority": "High", // High, Medium, Low
-      "status": "In Progress", // In Progress, Completed, Pending
-      "createdOn": "2024-09-30",
-    },
-    {
-      "title": "Update Database Schema",
-      "description":
-          "Modify the database structure to support new fields in the user profile section.",
-      "priority": "Medium",
-      "status": "In Progress",
-      "createdOn": "2024-09-28",
-    },
-    {
-      "title": "Design Marketing Materials",
-      "description":
-          "Create social media banners and email templates for the upcoming product launch.",
-      "priority": "Low",
-      "status": "Completed",
-      "createdOn": "10 days ago",
-    },
-    {
-      "title": "Fix Notification Bug",
-      "description":
-          "Resolve the issue where users are not receiving event notifications in the app.",
-      "priority": "High",
-      "status": "In Progress",
-      "createdOn": "2024-09-29",
-    },
-    {
-      "title": "Write User Documentation",
-      "description":
-          "Prepare a detailed user manual for the farm monitoring system with step-by-step instructions.",
-      "priority": "Medium",
-      "status": "Pending",
-      "createdOn": "2024-09-26",
-    },
-    {
-      "title": "Write User Documentation",
-      "description":
-          "Prepare a detailed user manual for the farm monitoring system with step-by-step instructions.",
-      "priority": "Medium",
-      "status": "Completed",
-      "createdOn": "2 days ago",
-    },
-  ];
+  List<TodoModel> allTodoList = [];
+  List<TodoModel> pendingOrInProgressTodosList = [];
+  List<TodoModel> completedTodosList = [];
 
   late int totalTodos;
   late int completedTodo;
@@ -112,18 +68,6 @@ class _ViewTodosState extends State<ViewTodos> {
 
   @override
   void initState() {
-    totalTodos = todoList.length;
-    completedTodo =
-        todoList.where((todo) => todo['status'] == 'Completed').length;
-    pendingTodos = todoList.where((todo) => todo['status'] == 'Pending').length;
-    inProgressTodos =
-        todoList.where((todo) => todo['status'] == 'In Progress').length;
-
-    completedPercentage =
-        totalTodos > 0 ? (completedTodo / totalTodos) * 100 : 0;
-    pendingPercentage = totalTodos > 0 ? (pendingTodos / totalTodos) * 100 : 0;
-    inProgressPercentage =
-        totalTodos > 0 ? (inProgressTodos / totalTodos) * 100 : 0;
     super.initState();
   }
 
@@ -135,6 +79,25 @@ class _ViewTodosState extends State<ViewTodos> {
 
     final fiveWidth = screenWidth * 0.003434;
     final fiveHeight = screenHeight * 0.005681;
+
+    allTodoList = ref.watch(todosProvider).todos;
+
+    completedTodosList = allTodoList
+        .where((todo) => todo.status.toLowerCase() == 'completed')
+        .toList();
+
+    pendingOrInProgressTodosList = allTodoList
+        .where((todo) => todo.status.toLowerCase() != 'completed')
+        .toList();
+
+    totalTodos = allTodoList.length;
+    completedTodo = completedTodosList.length;
+    pendingTodos = allTodoList.where((todo) => todo.status.toLowerCase() == 'pending').length;
+    inProgressTodos = allTodoList.where((todo) => todo.status.toLowerCase() == 'in progress').length;
+
+    completedPercentage = totalTodos > 0 ? (completedTodo / totalTodos) * 100 : 0;
+    pendingPercentage = totalTodos > 0 ? (pendingTodos / totalTodos) * 100 : 0;
+    inProgressPercentage = totalTodos > 0 ? (inProgressTodos / totalTodos) * 100 : 0;
 
     return Scaffold(
       body: LayoutBuilder(
@@ -273,17 +236,30 @@ class _ViewTodosState extends State<ViewTodos> {
     Color? boxHeadingColor = Theme.of(context).textTheme.labelLarge!.color;
     Color? boxDescriptionColor = Theme.of(context).textTheme.labelLarge!.color;
     Color? boxTextColor = Theme.of(context).textTheme.labelLarge!.color;
+    Color circularColor = Theme.of(context).colorScheme.onSecondaryFixed;
 
     return Container(
       padding:
           const EdgeInsets.only(top: 30.0, right: 30, left: 30, bottom: 30),
       height: height * 84,
+      width: MediaQuery.of(context).size.width,
       decoration: BoxDecoration(
         color: boxColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
+        mainAxisAlignment: (ref.watch(todosProvider).isLoading || completedTodosList.isEmpty ) ? MainAxisAlignment.center : MainAxisAlignment.start,
         children: [
+          if(ref.watch(todosProvider).isLoading)...[
+            CircularProgressIndicator(color: circularColor,)
+          ]else if(completedTodosList.isEmpty)...[
+            Text(
+              "No Completed Todos Found",
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+              ),
+            )
+          ]else...[
           Row(
             children: [
               const Icon(Icons.assignment_turned_in_outlined),
@@ -303,15 +279,10 @@ class _ViewTodosState extends State<ViewTodos> {
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: todoList
-                  .where((todo) => todo['status'] == 'Completed')
-                  .length, // Number of items in the list
+              itemCount: completedTodosList.length, // Number of items in the list
               itemBuilder: (context, index) {
                 // Filter and get only incomplete tasks
-                var filteredTodoList = todoList
-                    .where((todo) => todo['status'] == 'Completed')
-                    .toList();
-                var todoItem = filteredTodoList[index];
+                var todoItem = completedTodosList[index];
 
                 return Container(
                   margin: const EdgeInsets.symmetric(
@@ -354,7 +325,7 @@ class _ViewTodosState extends State<ViewTodos> {
                                 SizedBox(
                                   width: fiveWidth * 45,
                                   child: Text(
-                                    todoItem['title'],
+                                    todoItem.title,
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
@@ -372,7 +343,7 @@ class _ViewTodosState extends State<ViewTodos> {
                                 SizedBox(
                                   width: fiveWidth * 55,
                                   child: Text(
-                                    todoItem['description'],
+                                    todoItem.taskDescription,
                                     style: GoogleFonts.poppins(
                                         fontSize: 11,
                                         color: boxDescriptionColor),
@@ -385,15 +356,51 @@ class _ViewTodosState extends State<ViewTodos> {
                               ],
                             ),
                           ),
-                          IconButton(
+                          PopupMenuButton<String>(
                             padding: EdgeInsets.zero,
-                            constraints:
-                                const BoxConstraints(), // Removes any extra constraints
-                            onPressed: () {},
-                            icon: Icon(
+                            constraints: const BoxConstraints(),
+                            onSelected: (value) {
+                              if (value == 'delete') {
+                                ref.read(todosProvider.notifier).deleteTodo(todoItem.id);
+                              } else if (value == 'toggle_status') {
+                                ref.read(todosProvider.notifier).updateTodo(
+                                    TodoModel(
+                                        id: todoItem.id,
+                                        dueDate: todoItem.dueDate,
+                                        createdOn: todoItem.createdOn,
+                                        priority: todoItem.priority,
+                                        title: todoItem.title,
+                                        status: todoItem.status == "completed" ? "pending" : "completed",
+                                        taskDescription: todoItem.taskDescription)
+                                );
+                              }
+                            },
+                            icon: const Icon(
                               Icons.more_horiz_outlined,
-                              size: fiveWidth * 5,
+                              size: 25,
                             ),
+                            itemBuilder: (context) => [
+                              const PopupMenuItem<String>(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete_outline, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text("Delete"),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem<String>(
+                                value: 'toggle_status',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.sync_alt, color: Colors.blue),
+                                    const SizedBox(width: 8),
+                                    Text(todoItem.status == "completed" ? "Mark as Pending" : "Mark as Completed"),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -416,7 +423,7 @@ class _ViewTodosState extends State<ViewTodos> {
                                     ),
                                   ),
                                   Text(
-                                    todoItem['status'],
+                                    todoItem.status.toLowerCase(),
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: Colors.green,
@@ -428,7 +435,7 @@ class _ViewTodosState extends State<ViewTodos> {
                                 height: 10,
                               ),
                               Text(
-                                "Completed: ${todoItem['createdOn']}",
+                                "Due Date: ${todoItem.dueDate}",
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: boxTextColor,
@@ -454,7 +461,7 @@ class _ViewTodosState extends State<ViewTodos> {
                                   ),
                                 ),
                                 Text(
-                                  todoItem['status'],
+                                  todoItem.status.toLowerCase(),
                                   style: GoogleFonts.poppins(
                                     fontSize: 12,
                                     color: Colors.green,
@@ -463,7 +470,7 @@ class _ViewTodosState extends State<ViewTodos> {
                               ],
                             ),
                             Text(
-                              "Completed: ${todoItem['createdOn']}",
+                              "Created On: ${todoItem.createdOn}",
                               style: GoogleFonts.poppins(
                                 fontSize: 12,
                                 color: boxTextColor,
@@ -477,20 +484,20 @@ class _ViewTodosState extends State<ViewTodos> {
               },
             ),
           ),
+          ]
         ],
       ),
     );
   }
 
-  Widget addAndSeeTodos(
-      double height, double width, double fiveWidth, bool isMobile) {
+  Widget addAndSeeTodos(double height, double width, double fiveWidth, bool isMobile) {
     Color boxColor = Theme.of(context).colorScheme.onSecondary;
     Color innerBoxColor = Theme.of(context).colorScheme.onSecondaryContainer;
     Color? boxHeadingColor = Theme.of(context).textTheme.labelLarge!.color;
     Color? boxDescriptionColor = Theme.of(context).textTheme.labelLarge!.color;
     Color? boxTextColor = Theme.of(context).textTheme.labelLarge!.color;
-    Color borderColor =
-        Theme.of(context).inputDecorationTheme.border!.borderSide.color;
+    Color borderColor = Theme.of(context).inputDecorationTheme.border!.borderSide.color;
+    Color circularColor = Theme.of(context).colorScheme.onSecondaryFixed;
 
     return Container(
       height: height * 130,
@@ -503,304 +510,350 @@ class _ViewTodosState extends State<ViewTodos> {
         padding:
             const EdgeInsets.only(top: 30.0, right: 30, left: 30, bottom: 30),
         child: Column(
+          mainAxisAlignment: (ref.watch(todosProvider).isLoading || pendingOrInProgressTodosList.isEmpty ) ? MainAxisAlignment.center : MainAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.assignment_turned_in_outlined,
-                      size: 20,
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      "To-Do",
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      showAddTodoDialog(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 15, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: innerBoxColor,
-                        border: Border.all(
-                          color: borderColor,
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.add,
-                            color: Colors.red,
-                            size: 20,
-                          ),
-                          const SizedBox(
-                            width: 10,
-                          ),
-                          Text(
-                            "Add Task",
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+            if(ref.watch(todosProvider).isLoading)...[
+              Center(child: CircularProgressIndicator(color: circularColor,))
+            ]else if(pendingOrInProgressTodosList.isEmpty)...[
+              Center(
+                child: Text(
+                  "No Pending Todos Found",
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
                   ),
-                )
-              ],
-            ),
-            const SizedBox(
-              height: 30,
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: todoList
-                    .where((todo) => todo['status'] != 'Completed')
-                    .length, // Number of items in the list
-                itemBuilder: (context, index) {
-                  // Filter and get only incomplete tasks
-                  var filteredTodoList = todoList
-                      .where((todo) => todo['status'] != 'Completed')
-                      .toList();
-                  var todoItem = filteredTodoList[index];
-
-                  return Container(
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 7,
-                    ),
-                    padding: const EdgeInsets.only(
-                      top: 10,
-                      right: 15,
-                      left: 15,
-                      bottom: 15,
-                    ),
-                    decoration: BoxDecoration(
-                        color: innerBoxColor,
-                        border: Border.all(
-                          color: Colors.grey,
-                          width: 1,
+                ),
+              )
+            ]else...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.assignment_turned_in_outlined,
+                        size: 20,
+                      ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      Text(
+                        "To-Do",
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
                         ),
-                        borderRadius: BorderRadius.circular(20)),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      ),
+                    ],
+                  ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        showAddTodoDialog(context);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 15, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: innerBoxColor,
+                          border: Border.all(
+                            color: borderColor,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
                           children: [
-                            Icon(
-                              Icons.circle_outlined,
+                            const Icon(
+                              Icons.add,
+                              color: Colors.red,
                               size: 20,
-                              color: todoItem['status'] == "In Progress"
-                                  ? Colors.blue
-                                  : Colors.red,
                             ),
-                            SizedBox(
-                              width: fiveWidth * 4,
+                            const SizedBox(
+                              width: 10,
                             ),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: fiveWidth * 50,
-                                    child: Text(
-                                      todoItem['title'],
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: boxHeadingColor,
-                                      ),
-                                      maxLines:
-                                          null, // Allows text to wrap to the next line
-                                      overflow: TextOverflow
-                                          .visible, // Text will not overflow
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    height: 15,
-                                  ),
-                                  SizedBox(
-                                    width: fiveWidth * 55,
-                                    child: Text(
-                                      todoItem['description'],
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11,
-                                        color: boxDescriptionColor,
-                                      ),
-                                      textAlign: TextAlign.start,
-                                      maxLines:
-                                          null, // Allows text to wrap to the next line
-                                      overflow: TextOverflow
-                                          .visible, // Text will not overflow
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints:
-                                  const BoxConstraints(), // Removes any extra constraints
-                              onPressed: () {},
-                              icon: const Icon(
-                                Icons.more_horiz_outlined,
-                                size: 25,
+                            Text(
+                              "Add Task",
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
-                        if (isMobile)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                                left: 25, right: 20, top: 0, bottom: 10),
-                            child: Column(
+                      ),
+                    ),
+                  )
+                ],
+              ),
+              const SizedBox(
+                height: 30,
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: pendingOrInProgressTodosList.length, // Number of items in the list
+                  itemBuilder: (context, index) {
+                    // Filter and get only incomplete tasks
+                    var todoItem = pendingOrInProgressTodosList[index];
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 7,
+                      ),
+                      padding: const EdgeInsets.only(
+                        top: 10,
+                        right: 15,
+                        left: 15,
+                        bottom: 15,
+                      ),
+                      decoration: BoxDecoration(
+                          color: innerBoxColor,
+                          border: Border.all(
+                            color: Colors.grey,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(20)),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Icon(
+                                Icons.circle_outlined,
+                                size: 20,
+                                color: todoItem.status.toLowerCase() == "In Progress"
+                                    ? Colors.blue
+                                    : Colors.red,
+                              ),
+                              SizedBox(
+                                width: fiveWidth * 4,
+                              ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: fiveWidth * 50,
+                                      child: Text(
+                                        todoItem.title,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: boxHeadingColor,
+                                        ),
+                                        maxLines:
+                                        null, // Allows text to wrap to the next line
+                                        overflow: TextOverflow
+                                            .visible, // Text will not overflow
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                      height: 15,
+                                    ),
+                                    SizedBox(
+                                      width: fiveWidth * 55,
+                                      child: Text(
+                                        todoItem.taskDescription,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 11,
+                                          color: boxDescriptionColor,
+                                        ),
+                                        textAlign: TextAlign.start,
+                                        maxLines:
+                                        null, // Allows text to wrap to the next line
+                                        overflow: TextOverflow
+                                            .visible, // Text will not overflow
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuButton<String>(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onSelected: (value) {
+                                  if (value == 'delete') {
+                                    ref.read(todosProvider.notifier).deleteTodo(todoItem.id);
+                                  } else if (value == 'toggle_status') {
+                                    ref.read(todosProvider.notifier).updateTodo(
+                                      TodoModel(
+                                          id: todoItem.id,
+                                          dueDate: todoItem.dueDate,
+                                          createdOn: todoItem.createdOn,
+                                          priority: todoItem.priority,
+                                          title: todoItem.title,
+                                          status: todoItem.status == "completed" ? "pending" : "completed",
+                                          taskDescription: todoItem.taskDescription)
+                                    );
+                                  }
+                                },
+                                icon: const Icon(
+                                  Icons.more_horiz_outlined,
+                                  size: 25,
+                                ),
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete_outline, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text("Delete"),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem<String>(
+                                    value: 'toggle_status',
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.sync_alt, color: Colors.blue),
+                                        const SizedBox(width: 8),
+                                        Text(todoItem.status == "completed" ? "Mark as Pending" : "Mark as Completed"),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          if (isMobile)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 25, right: 20, top: 0, bottom: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "Priority: ",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: boxTextColor,
+                                        ),
+                                      ),
+                                      Text(
+                                        todoItem.priority,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: Colors.lightBlueAccent,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(
+                                    height: 8,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "Status: ",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: boxTextColor,
+                                        ),
+                                      ),
+                                      Text(
+                                        todoItem.status.toLowerCase(),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color:
+                                          todoItem.status.toLowerCase() == "In Progress"
+                                              ? Colors.blue
+                                              : Colors.red,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(
+                                    height: 8,
+                                  ),
+                                  Text(
+                                    "Created On: ${todoItem.createdOn}",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: boxTextColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      "Priority: ",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: boxTextColor,
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 25, right: 20, top: 10, bottom: 10),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Priority: ",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: boxTextColor,
+                                            ),
+                                          ),
+                                          Text(
+                                            todoItem.priority,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.lightBlueAccent,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    Text(
-                                      todoItem['priority'],
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: Colors.lightBlueAccent,
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Status: ",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: boxTextColor,
+                                            ),
+                                          ),
+                                          Text(
+                                            todoItem.status.toLowerCase(),
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: todoItem.status.toLowerCase() ==
+                                                  "In Progress"
+                                                  ? Colors.blue
+                                                  : Colors.red,
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 25, right: 20, top: 0, bottom: 10),
+                                  child: Text(
+                                    "Created On: ${todoItem.createdOn}",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: boxTextColor,
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(
-                                  height: 8,
-                                ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      "Status: ",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: boxTextColor,
-                                      ),
-                                    ),
-                                    Text(
-                                      todoItem['status'],
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color:
-                                            todoItem['status'] == "In Progress"
-                                                ? Colors.blue
-                                                : Colors.red,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(
-                                  height: 8,
-                                ),
-                                Text(
-                                  "Created On: ${todoItem['createdOn']}",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: boxTextColor,
                                   ),
                                 ),
                               ],
                             ),
-                          )
-                        else
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 25, right: 20, top: 10, bottom: 10),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          "Priority: ",
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: boxTextColor,
-                                          ),
-                                        ),
-                                        Text(
-                                          todoItem['priority'],
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: Colors.lightBlueAccent,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          "Status: ",
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: boxTextColor,
-                                          ),
-                                        ),
-                                        Text(
-                                          todoItem['status'],
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            color: todoItem['status'] ==
-                                                    "In Progress"
-                                                ? Colors.blue
-                                                : Colors.red,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 25, right: 20, top: 0, bottom: 10),
-                                child: Text(
-                                  "Created On: ${todoItem['createdOn']}",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: boxTextColor,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  );
-                },
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
+            ]
+
           ],
         ),
       ),

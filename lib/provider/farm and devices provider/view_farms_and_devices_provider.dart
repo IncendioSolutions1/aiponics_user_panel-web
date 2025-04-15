@@ -73,7 +73,7 @@ class ViewFarmsAndDevicesNotifier extends StateNotifier<ViewFarmModel> {
       // Ensure that FarmService.fetchAllFarms() is refactored to not need a BuildContext.
       log("API call: fetchAllFarms started.");
       List<FarmModel> farms = await FarmService.fetchAllFarms();
-      state = state.copyWith(farmModelList: farms, areFarmsLoading: false);
+      state = state.copyWith(farmModelList: farms, areFarmsLoading: false, selectedFarm: farms[0]);
     } catch (error) {
       // Handle error appropriately (you might log the error or update state with an error flag)
       state = state.copyWith(areFarmsLoading: false);

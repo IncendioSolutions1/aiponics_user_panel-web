@@ -46,14 +46,14 @@ class DashboardInfoNotifier extends StateNotifier<DashboardInfoModel> {
 
       // Replace with actual API response parsing
       final Map<String, double?> fetchedData = {
-        "farmTemperature": double.parse("10"),
-        "externalTemperature": double.parse("20"),
-        "farmHumidity": double.parse("30"),
-        "externalHumidity": double.parse("40"),
-        "waterTemperature": double.parse("50"),
-        "waterLevel": double.parse("60"),
-        "pHLevel": double.parse("5.5"),
-        "farmCoLevel": double.parse("90"),
+        "farmTemperature": double.parse("0"),
+        "externalTemperature": double.parse("0"),
+        "farmHumidity": double.parse("0"),
+        "externalHumidity": double.parse("0"),
+        "waterTemperature": double.parse("0"),
+        "waterLevel": double.parse("0"),
+        "pHLevel": double.parse("0"),
+        "farmCoLevel": double.parse("0"),
       };
 
       final Map<String, List<Map<int, double>>> fetchedDataEnergyAndLight = {

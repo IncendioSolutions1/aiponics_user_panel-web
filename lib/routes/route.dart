@@ -114,8 +114,8 @@ class TRoutes {
 
 
     {'text': 'DATA', 'isHeader': true},
-    {'text': 'Users', 'icon': Icons.person, 'route': users},
-    {'text': 'Analytics', 'icon': Icons.analytics, 'route': analytics},
+    // {'text': 'Users', 'icon': Icons.person, 'route': users},
+    // {'text': 'Analytics', 'icon': Icons.analytics, 'route': analytics},
     {
       'text': 'Records',
       'icon': Icons.library_books,
@@ -139,11 +139,11 @@ class TRoutes {
     },
 
     {'text': 'USER PROFILE', 'isHeader': true},
-    {'text': 'User Pages', 'icon': Icons.person_outline, 'route': userPages},
+    // {'text': 'User Pages', 'icon': Icons.person_outline, 'route': userPages},
     {'text': 'Transaction History', 'icon': Icons.history, 'route': transactionHistory},
     {'text': 'Subscription Plans', 'icon': Icons.card_membership, 'route': subscriptionPlans},
 
-    {'text': 'Others', 'isHeader': true},
-    {'text': 'Logout User', 'icon': Icons.exit_to_app, 'route': documentation},
+    // {'text': 'Others', 'isHeader': true},
+    // {'text': 'Logout User', 'icon': Icons.exit_to_app, 'route': documentation},
   ];
 }

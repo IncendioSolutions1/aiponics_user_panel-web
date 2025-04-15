@@ -155,7 +155,7 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
     }
   }
 
-  Widget userNameRoleAndPicture(UserAccountInfoModel userState, Color boxHeadingColor) {
+  Widget userNameRoleAndPicture(UserAccount userState, Color boxHeadingColor) {
     return Row(
       children: [
         Container(
@@ -168,12 +168,12 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(50),
-            child: userState.username == "loading" ? const SizedBox(
+            child: userState.userAccountInfoModel.username == "loading" ? const SizedBox(
               width: 50,
               height: 50,
               child: CircularProgressIndicator(color: Colors.green,),
-            ) : userState.username == "error" ? IconButton(onPressed: (){}, icon: const Icon(Icons.refresh)) : Image.asset(
-              userState.profilePicture ?? "assets/images/logo.jpeg",
+            ) : userState.userAccountInfoModel.username == "error" ? IconButton(onPressed: (){}, icon: const Icon(Icons.refresh)) : Image.asset(
+              userState.userAccountInfoModel.profilePicture ?? "assets/images/logo.jpeg",
               width: 50,
               height: 50,
               fit: BoxFit.cover,
@@ -185,7 +185,7 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "${userState.firstName} ${userState.lastName}",
+              "${userState.userAccountInfoModel.firstName} ${userState.userAccountInfoModel.lastName}",
               style: GoogleFonts.nunitoSans(
                 textStyle: TextStyle(
                   fontSize: 14,
@@ -196,7 +196,7 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              userState.role[0],
+              userState.userAccountInfoModel.role[0],
               style: GoogleFonts.nunitoSans(
                 textStyle: TextStyle(
                   fontSize: 12,

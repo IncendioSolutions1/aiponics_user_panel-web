@@ -1,20 +1,15 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'package:aiponics_web_app/controllers/token%20controllers/access_and_refresh_token_controller.dart';
 import 'package:aiponics_web_app/models/farm%20and%20devices%20models/farm_model.dart';
-import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:aiponics_web_app/api%20information/api_constants.dart';
 import 'package:aiponics_web_app/views/common/header/header_without_farm_dropdown.dart';
 import 'package:aiponics_web_app/views/sideBar%20(%20Drawer%20Screens%20)/teams%20and%20permissions/add_a_team_member.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../../../controllers/common_methods.dart';
 import '../../../controllers/network controllers/network_controller.dart';
-import '../../../provider/farm and devices provider/add_farm_provider.dart';
 import '../../../provider/farm and devices provider/view_farms_and_devices_provider.dart';
 
 class AddATeam extends ConsumerStatefulWidget {
@@ -132,7 +127,7 @@ class _AddATeamState extends ConsumerState<AddATeam> {
 
       if(_farmsList.isEmpty){
         CommonMethods.showSnackBarWithoutContext(
-            "No Farms Found in server", "Please add a farm first for assigning a team to it.", ContentType.failure);
+            "No Farms Found in server", "Please add a farm first for assigning a team to it.", "failure");
         setState(() {
           isLoading = false;
         });
@@ -143,7 +138,7 @@ class _AddATeamState extends ConsumerState<AddATeam> {
 
       if(farmIds.isEmpty){
         CommonMethods.showSnackBarWithoutContext(
-            "No Farms Selected", "Please select at least one farm for assigning a team to it.", ContentType.failure);
+            "No Farms Selected", "Please select at least one farm for assigning a team to it.", "failure");
         setState(() {
           isLoading = false;
         });
@@ -156,7 +151,7 @@ class _AddATeamState extends ConsumerState<AddATeam> {
       if (bearerToken == null) {
         Future.delayed(const Duration(milliseconds: 100), () {
           CommonMethods.showSnackBarWithoutContext(
-              "Error", "An error occurred. Please try again later.", ContentType.failure);
+              "Error", "An error occurred. Please try again later.", "failure");
         });
         return;
       }
@@ -192,7 +187,7 @@ class _AddATeamState extends ConsumerState<AddATeam> {
               CommonMethods.showSnackBarWithoutContext(
                   "Team Added Successfully",
                   "The ${teamName.text} team has been added successfully.",
-                  ContentType.success);
+                  "success");
             });
 
             setState(() {
@@ -206,12 +201,12 @@ class _AddATeamState extends ConsumerState<AddATeam> {
             log("TEAM_ADD_RESPONSE: Response Data: ${response.data}");
 
                 CommonMethods.showSnackBarWithoutContext(
-                    "Failed to add Team", "Failed to add ${teamName.text} team to server.", ContentType.failure);
+                    "Failed to add Team", "Failed to add ${teamName.text} team to server.", "failure");
           }
         } else {
           Future.delayed(const Duration(milliseconds: 100), () {
             CommonMethods.showSnackBarWithoutContext(
-                "Error", "Internet not available", ContentType.failure);
+                "Error", "Internet not available", "failure");
           });
         }
       } on DioException catch (e) {
@@ -221,10 +216,10 @@ class _AddATeamState extends ConsumerState<AddATeam> {
               e.response?.data["detail"].contains(
                   "One or more farms in the list are already being managed by other teams.")) {
             CommonMethods.showSnackBarWithoutContext(
-                "Failed to add Team", "${e.response?.data["detail"]}", ContentType.failure);
+                "Failed to add Team", "${e.response?.data["detail"]}", "failure");
           } else {
             CommonMethods.showSnackBarWithoutContext(
-                "Failed to add Team", "Failed to add ${teamName.text} team to server.", ContentType.failure);
+                "Failed to add Team", "Failed to add ${teamName.text} team to server.", "failure");
           }
         });
       }
@@ -523,8 +518,8 @@ class _AddATeamState extends ConsumerState<AddATeam> {
             hintStyle: TextStyle(
                 fontSize: 14,
                 color:
-                boxHeadingColor.withOpacity(0.8)), // Custom hint text color
-            fillColor: Colors.grey.withOpacity(0.3), // Background fill color
+                boxHeadingColor.withAlpha(204)), // Custom hint text color
+            fillColor: Colors.grey.withAlpha(75), // Background fill color
             filled: true, // Apply fill color
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(5), // Rounded corners
@@ -584,7 +579,7 @@ class _AddATeamState extends ConsumerState<AddATeam> {
   //       ),
   //       Container(
   //         decoration: BoxDecoration(
-  //           color: Colors.grey.withOpacity(0.3), // Background fill color
+  //           color: Colors.grey.withAlpha(75), // Background fill color
   //           borderRadius: BorderRadius.circular(5), // Rounded corners
   //           border: Border.all(
   //             color: Colors.grey.shade400, // Border color
@@ -611,7 +606,7 @@ class _AddATeamState extends ConsumerState<AddATeam> {
   //             isExpanded: true, // Ensures the dropdown takes up full width
   //             iconEnabledColor: boxHeadingColor,
   //             style: TextStyle(
-  //               color: boxHeadingColor.withOpacity(0.8), // Text color
+  //               color: boxHeadingColor.withAlpha(204), // Text color
   //               fontSize: 14,
   //             ),
   //             underline: Container(), // Removes the default underline
@@ -639,7 +634,7 @@ class _AddATeamState extends ConsumerState<AddATeam> {
   //       ),
   //       Container(
   //         decoration: BoxDecoration(
-  //           color: Colors.grey.withOpacity(0.3), // Background fill color
+  //           color: Colors.grey.withAlpha(75), // Background fill color
   //           borderRadius: BorderRadius.circular(5), // Rounded corners
   //           border: Border.all(
   //             color: Colors.grey.shade400, // Border color
@@ -667,7 +662,7 @@ class _AddATeamState extends ConsumerState<AddATeam> {
   //             isExpanded: true, // Ensures the dropdown takes up full width
   //             iconEnabledColor: boxHeadingColor,
   //             style: TextStyle(
-  //               color: boxHeadingColor.withOpacity(0.8), // Text color
+  //               color: boxHeadingColor.withAlpha(204), // Text color
   //               fontSize: 14,
   //             ),
   //             underline: Container(), // Removes the default underline
@@ -700,8 +695,8 @@ class _AddATeamState extends ConsumerState<AddATeam> {
   //           hintStyle: TextStyle(
   //               fontSize: 14,
   //               color:
-  //               boxHeadingColor.withOpacity(0.8)), // Custom hint text color
-  //           fillColor: Colors.grey.withOpacity(0.3), // Background fill color
+  //               boxHeadingColor.withAlpha(204)), // Custom hint text color
+  //           fillColor: Colors.grey.withAlpha(75), // Background fill color
   //           filled: true, // Apply fill color
   //           border: OutlineInputBorder(
   //             borderRadius: BorderRadius.circular(5), // Rounded corners
@@ -758,8 +753,8 @@ class _AddATeamState extends ConsumerState<AddATeam> {
   //           hintStyle: TextStyle(
   //               fontSize: 14,
   //               color:
-  //               boxHeadingColor.withOpacity(0.8)), // Custom hint text color
-  //           fillColor: Colors.grey.withOpacity(0.3), // Background fill color
+  //               boxHeadingColor.withAlpha(204)), // Custom hint text color
+  //           fillColor: Colors.grey.withAlpha(75), // Background fill color
   //           filled: true, // Apply fill color
   //           border: OutlineInputBorder(
   //             borderRadius: BorderRadius.circular(5), // Rounded corners
@@ -822,8 +817,8 @@ class _AddATeamState extends ConsumerState<AddATeam> {
             hintStyle: TextStyle(
                 fontSize: 14,
                 color:
-                boxHeadingColor.withOpacity(0.8)), // Custom hint text color
-            fillColor: Colors.grey.withOpacity(0.3), // Background fill color
+                boxHeadingColor.withAlpha(204)), // Custom hint text color
+            fillColor: Colors.grey.withAlpha(75), // Background fill color
             filled: true, // Enables fill color
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(5), // Rounded corners

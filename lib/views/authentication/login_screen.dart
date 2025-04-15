@@ -47,10 +47,10 @@ class LoginScreenState extends State<LoginScreen> {
       setState(() {
         isLoading = false;
       });
-      Get.toNamed(TRoutes.dashboard);
+      // Get.toNamed(TRoutes.dashboard);
       if (mounted) {
         CommonMethods.showSnackBarWithoutContext(result['success'] ? "Success" : "Failed",
-            result['message'], result['success'] ? ContentType.success : ContentType.failure);
+            result['message'], result['success'] ? "success" : "failure");
       }
     }else{
       usernameController.text = usernameController.text;
