@@ -3,7 +3,7 @@ name: Deploy Flutter Web App to DigitalOcean Droplet
 on:
   push:
     branches:
-      - main  # Adjust if you use a different branch
+      - master  # Adjust if you use a different branch
 
 jobs:
   build-and-deploy:
