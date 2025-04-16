@@ -40,7 +40,7 @@ class UserAccountInfoApi {
       log("USER_INFO_RESPONSE: Received response with status code ${response.statusCode}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        log("USER_INFO_RESPONSE: Response Data: ${response.data}");
+        // log("USER_INFO_RESPONSE: Response Data: ${response.data}");
         userAccountInfoModel =  UserAccountInfoModel.fromJson(response.data);
       } else {
         log("USER_INFO_RESPONSE: Response error ${response.statusCode}");

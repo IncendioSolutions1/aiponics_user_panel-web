@@ -9,9 +9,9 @@ class HeaderNotifier extends StateNotifier<HeaderModel> {
     temperatureSignList: ["°C", "°F"],
     farmList: [],
     selectedFarm: "loading"
-  )) { simulateApiCall(); }
+  )) { fetchFarms(); }
 
-  void simulateApiCall() async {
+  void fetchFarms() async {
     List<FarmModel> farmModelList = await FarmService.fetchAllFarms();
     if(farmModelList.isNotEmpty) {
       List<String> farmNames = farmModelList.map((farm) => farm.name).toList();

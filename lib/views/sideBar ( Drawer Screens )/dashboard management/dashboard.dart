@@ -248,7 +248,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
             final encodedToken = Uri.encodeComponent(bearerToken);
 
             // Build the WebSocket URL like deviceId/token in the path
-            final String url = 'wss://control-panel.ai-ponics.com/ws/live-data/$deviceId/$encodedToken/';
+            final String url = 'ws://control-panel.ai-ponics.com/ws/live-data/$deviceId/$encodedToken/';
 
             log("connecting to : $url");
 
@@ -326,12 +326,12 @@ class _DashboardState extends ConsumerState<Dashboard> {
   Widget build(BuildContext context) {
     dashboardCommonGauges = DashboardCommonGauges(context: context, ref: ref);
     initializeValues();
-    fetchDevices();
+    // fetchDevices();
 
     if (!areValueInitialized && !ref.watch(userAccountInfoProvider).isLoading) {
       // Call initialize functions once during the first build
       _initializeGauges();
-      fetchDevices();
+      // fetchDevices();
       areValueInitialized = true;
     }
 
@@ -362,7 +362,7 @@ class _DashboardState extends ConsumerState<Dashboard> {
                 .updateScreenRemainingWidth(remainingWidth);
           });
 
-          return Padding(
+          return Container(
             padding: const EdgeInsets.only(
                 top: 40, bottom: 40, right: 20, left: 20), // Padding for desktop layout
             child: responsiveUniversalDashboard(), // Call desktop dashboard management method

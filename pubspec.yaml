@@ -84,6 +84,7 @@ dependencies:
   dio: ^5.7.0
   fluttertoast: ^8.2.12
   another_flushbar: ^1.12.30
+  shimmer: ^3.0.0
 #  websocket_universal: ^1.2.5
 #  web_socket_channel: ^2.4.0
 #  flutter_websocket_manager: ^1.0.4

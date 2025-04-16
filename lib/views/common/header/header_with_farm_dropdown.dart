@@ -8,6 +8,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../controllers/token controllers/access_and_refresh_token_controller.dart';
 
@@ -23,7 +24,7 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
+    // Font & widget sizing based on responsive information.
     double desktopMainFontSize = 25;
     double desktopSubFontSize = 15;
     double tabletMainFontSize = 20;
@@ -40,7 +41,7 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
     double mobileFarmWidth = 150;
     double mobileFarmHeight = 47;
 
-    // Access the current user state
+    // Access state providers.
     final userState = ref.watch(userAccountInfoProvider);
     final screenInfoState = ref.watch(dashboardScreenInfoProvider);
     final updateHeaderState = ref.read(headerInfoProvider.notifier);
@@ -49,10 +50,9 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
     final responsive = screenInfoState['screenResponsiveness'];
 
     ThemeColors themeColors = ThemeColors(context);
-
-    // Update colors based on
     final boxHeadingColor = themeColors.boxHeadingColor;
 
+    // Layout builds based on responsive flag.
     if (responsive == 'desktop') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,34 +61,57 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome header and dropdown
+              // Left side: Welcome header and accessibility buttons.
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  welcomeHeader(themeColors, fiveWidth, desktopMainFontSize,
-                      desktopSubFontSize),
+                  welcomeHeader(
+                      themeColors, fiveWidth, desktopMainFontSize, desktopSubFontSize),
                   const SizedBox(height: 30),
-                  // Share, print, and export button
                   accessibilityButtons(
                       desktopButtonWidth, fiveWidth, themeColors),
                 ],
               ),
-              // Use Expanded here to make the second column take up the remaining space
+              // Right side: User info and dropdowns.
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Profile picture, name and role
-                  userNameRoleAndPicture(userState, boxHeadingColor),
+                  userNameRoleAndPicture(userState, boxHeadingColor, context),
                   const SizedBox(height: 30),
-                  // Dropdown for selecting farm
                   Row(
                     children: [
-                      farmDropdown(updateHeaderState, themeColors, headerModel,
-                          desktopFarmWidth, desktopFarmHeight),
+                      // Farm dropdown widget with shimmer placeholder when loading.
+                      _buildDropdown(
+                        width: desktopFarmWidth,
+                        height: desktopFarmHeight,
+                        labelText: "Select Farm",
+                        items: headerModel.farmList,
+                        selectedItem: headerModel.selectedFarm,
+                        onChanged: (String? selectedFarm) {
+                          if (selectedFarm != null) {
+                            updateHeaderState.updateFarm(selectedFarm);
+                          }
+                        },
+                        themeColors: themeColors,
+                        isLoading: headerModel.selectedFarm == "loading",
+                      ),
                       const SizedBox(width: 10),
-                      celsiusOrFahrenheitDropdown(updateHeaderState, themeColors, headerModel,
-                          70, desktopFarmHeight),
+                      // Temperature unit dropdown widget.
+                      _buildDropdown(
+                        width: 80,
+                        height: desktopFarmHeight,
+                        labelText: "Temp",
+                        items: headerModel.temperatureSignList,
+                        selectedItem: headerModel.selectedTemperatureSign,
+                        onChanged: (String? selectedTemp) {
+                          if (selectedTemp != null) {
+                            updateHeaderState.updateTemperatureSign(selectedTemp);
+                          }
+                        },
+                        themeColors: themeColors,
+                        isLoading: false,
+                      ),
                     ],
                   )
                 ],
@@ -106,26 +129,36 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome header and dropdown
+              // Tablet left: Welcome header and buttons.
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  welcomeHeader(themeColors, fiveWidth, tabletMainFontSize,
-                      tabletSubFontSize),
+                  welcomeHeader(
+                      themeColors, fiveWidth, tabletMainFontSize, tabletSubFontSize),
                   const SizedBox(height: 30),
-                  // Share, print, and export button
                   accessibilityButtons(
                       tabletButtonWidth, fiveWidth, themeColors),
                 ],
               ),
+              // Tablet right: Profile info and farm dropdown.
               Column(
                 children: [
-                  // Profile picture, name and role
-                  userNameRoleAndPicture(userState, boxHeadingColor),
+                  userNameRoleAndPicture(userState, boxHeadingColor, context),
                   const SizedBox(height: 30),
-                  // Dropdown for selecting farm
-                  farmDropdown(updateHeaderState, themeColors, headerModel,
-                      tabletFarmWidth, tabletFarmHeight)
+                  _buildDropdown(
+                    width: tabletFarmWidth,
+                    height: tabletFarmHeight,
+                    labelText: "Select Farm",
+                    items: headerModel.farmList,
+                    selectedItem: headerModel.selectedFarm,
+                    onChanged: (String? selectedFarm) {
+                      if (selectedFarm != null) {
+                        updateHeaderState.updateFarm(selectedFarm);
+                      }
+                    },
+                    themeColors: themeColors,
+                    isLoading: headerModel.selectedFarm == "loading",
+                  ),
                 ],
               ),
             ],
@@ -134,20 +167,32 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
         ],
       );
     } else {
+      // Mobile layout.
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          userNameRoleAndPicture(userState, boxHeadingColor),
+          userNameRoleAndPicture(userState, boxHeadingColor, context),
           const SizedBox(height: 20),
           welcomeHeader(
               themeColors, fiveWidth, mobileMainFontSize, mobileSubFontSize),
           const SizedBox(height: 30),
-          // Dropdown for selecting farm
-          farmDropdown(updateHeaderState, themeColors, headerModel, mobileFarmWidth,
-              mobileFarmHeight),
+          _buildDropdown(
+            width: mobileFarmWidth,
+            height: mobileFarmHeight,
+            labelText: "Select Farm",
+            items: headerModel.farmList,
+            selectedItem: headerModel.selectedFarm,
+            onChanged: (String? selectedFarm) {
+              if (selectedFarm != null) {
+                updateHeaderState.updateFarm(selectedFarm);
+              }
+            },
+            themeColors: themeColors,
+            isLoading: headerModel.selectedFarm == "loading",
+          ),
           const SizedBox(height: 30),
-          // Share, print, and export button
-          accessibilityButtons(mobileButtonWidth, fiveWidth, themeColors),
+          accessibilityButtons(
+              mobileButtonWidth, fiveWidth, themeColors),
           const SizedBox(height: 10),
           divider(themeColors),
         ],
@@ -155,7 +200,102 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
     }
   }
 
-  Widget userNameRoleAndPicture(UserAccount userState, Color boxHeadingColor) {
+  /// Builds the dropdown widget using DropdownSearch package.
+  Widget _buildDropdown({
+    required double width,
+    required double height,
+    required String labelText,
+    required List<String> items,
+    required String? selectedItem,
+    required Function(String?) onChanged,
+    required ThemeColors themeColors,
+    required bool isLoading,
+  }) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: isLoading
+          ? _buildShimmerPlaceholder(isLoading ? width : width, isLoading ? height : height, themeColors)
+          : DropdownSearch<String>(
+        onChanged: onChanged,
+        items: (filter, infiniteScrollProps) => items,
+        selectedItem: selectedItem,
+        decoratorProps: DropDownDecoratorProps(
+          decoration: _inputDecoration(themeColors, labelText),
+        ),
+        popupProps: PopupProps.menu(
+          fit: FlexFit.loose,
+          constraints: const BoxConstraints(maxHeight: 300),
+          menuProps: MenuProps(
+            backgroundColor: themeColors.boxColor,
+            elevation: 8,
+          ),
+          itemBuilder: (context, item, isSelected, _) {
+            return Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: themeColors.boxColor,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                item,
+                style: TextStyle(
+                  color: item == selectedItem
+                      ? themeColors.borderColor
+                      : themeColors.boxHeadingColor,
+                  fontWeight: item == selectedItem ? FontWeight.w600 : null,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Returns a common input decoration for dropdowns.
+  InputDecoration _inputDecoration(ThemeColors themeColors, String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(5),
+        borderSide: BorderSide(
+          color: themeColors.borderColor,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(5),
+        borderSide: BorderSide(
+          color: themeColors.borderColor,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(5),
+        borderSide: BorderSide(
+          color: themeColors.borderColor,
+        ),
+      ),
+    );
+  }
+
+  /// Creates a shimmer placeholder widget.
+  Widget _buildShimmerPlaceholder(double width, double height, ThemeColors themeColors) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(5),
+        ),
+      ),
+    );
+  }
+
+  /// User profile widget with shimmer on the name if loading.
+  Widget userNameRoleAndPicture(UserAccount userState, Color boxHeadingColor, BuildContext context) {
     return Row(
       children: [
         Container(
@@ -168,200 +308,95 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(50),
-            child: userState.userAccountInfoModel.username == "loading" ? const SizedBox(
-              width: 50,
-              height: 50,
-              child: CircularProgressIndicator(color: Colors.green,),
-            ) : userState.userAccountInfoModel.username == "error" ? IconButton(onPressed: (){}, icon: const Icon(Icons.refresh)) : Image.asset(
-              userState.userAccountInfoModel.profilePicture ?? "assets/images/logo.jpeg",
+            child: userState.userAccountInfoModel.username == "loading"
+                ? _buildShimmerPlaceholder(50, 50, ThemeColors(context))
+                : userState.userAccountInfoModel.username == "error"
+                ? IconButton(onPressed: () {}, icon: const Icon(Icons.refresh))
+                : Image.asset(
+              userState.userAccountInfoModel.profilePicture ??
+                  "assets/images/logo.jpeg",
               width: 50,
               height: 50,
               fit: BoxFit.cover,
             ),
           ),
         ),
+
         const SizedBox(width: 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "${userState.userAccountInfoModel.firstName} ${userState.userAccountInfoModel.lastName}",
-              style: GoogleFonts.nunitoSans(
-                textStyle: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: boxHeadingColor,
+            if(userState.isLoading)...[
+              Shimmer.fromColors(
+                enabled: userState.isLoading,
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Text(
+                  "${userState.userAccountInfoModel.firstName} ${userState.userAccountInfoModel.lastName}",
+                  style: GoogleFonts.nunitoSans(
+                    textStyle: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: boxHeadingColor,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ]
+            else...[
+              Text(
+                "${userState.userAccountInfoModel.firstName} ${userState.userAccountInfoModel.lastName}",
+                style: GoogleFonts.nunitoSans(
+                  textStyle: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: boxHeadingColor,
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 2),
-            Text(
-              userState.userAccountInfoModel.role[0],
-              style: GoogleFonts.nunitoSans(
-                textStyle: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: boxHeadingColor,
+            if(userState.isLoading)...[
+              Shimmer.fromColors(
+                enabled: userState.isLoading,
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Text(
+                  userState.userAccountInfoModel.role[0],
+                  style: GoogleFonts.nunitoSans(
+                    textStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: boxHeadingColor,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ]else...[
+              Text(
+                userState.userAccountInfoModel.role[0],
+                style: GoogleFonts.nunitoSans(
+                  textStyle: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: boxHeadingColor,
+                  ),
+                ),
+              ),
+            ],
+
           ],
         ),
       ],
     );
   }
 
-  Widget farmDropdown(HeaderNotifier updateFarmState, ThemeColors themeColors,
-      HeaderModel userState, double width, double height) {
-    return SizedBox(
-      width: userState.selectedFarm == "loading" ? 30 : width, // Sets the width of the dropdown
-      height: userState.selectedFarm == "loading" ? 30 : height, // Sets the height of the dropdown
-      child: userState.selectedFarm == "loading" ? const CircularProgressIndicator(color: Colors.green,) : DropdownSearch<String>(
-        onChanged: (String? selectedFarm) {
-          if (selectedFarm != null) {
-            updateFarmState.updateFarm(selectedFarm); // Update the farm state
-          }
-        },
-        items: (filter, infiniteScrollProps) =>
-        userState.farmList, // Provides the list of farms and devices
-        selectedItem: userState.selectedFarm, // Sets the default selected item
-        decoratorProps: DropDownDecoratorProps(
-          decoration: InputDecoration(
-            labelText: "Select Farm", // Label for the dropdown
-            border: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(5), // Rounded border for the input
-                borderSide: BorderSide(
-                  color: themeColors.borderColor,
-                )),
-            enabledBorder: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(5), // Rounded border for the input
-                borderSide: BorderSide(
-                  color: themeColors.borderColor,
-                )),
-            focusedBorder: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(5), // Rounded border for the input
-                borderSide: BorderSide(
-                  color: themeColors.borderColor,
-                )),
-          ),
-        ),
-        popupProps: PopupProps.menu(
-          fit: FlexFit.loose, // Allows the popup to fit loosely
-          constraints:
-              const BoxConstraints(maxHeight: 300), // Limits popup height
-          menuProps: MenuProps(
-            backgroundColor:
-                themeColors.boxColor, // Background color of the dropdown menu
-            elevation: 8, // Shadow elevation for the dropdown menu
-          ),
-          itemBuilder: (context, item, isSelected, boolAgain) {
-            return Container(
-              padding: const EdgeInsets.all(10), // Padding for each item
-              decoration: BoxDecoration(
-                color:
-                    themeColors.boxColor, // Background color based on selection
-                borderRadius:
-                    BorderRadius.circular(5), // Rounded corners for the item
-              ),
-              child: Text(
-                item, // Displays the farm name
-                style: TextStyle(
-                  color: item == userState.selectedFarm
-                      ? themeColors.borderColor
-                      : themeColors
-                          .boxHeadingColor, // Text color based on selection
-                  fontWeight:
-                      item == userState.selectedFarm ? FontWeight.w600 : null,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget celsiusOrFahrenheitDropdown(HeaderNotifier updateHeaderState, ThemeColors themeColors,
-      HeaderModel headerState, double width, double height) {
-    return SizedBox(
-      width: width, // Sets the width of the dropdown
-      height: height, // Sets the height of the dropdown
-      child: DropdownSearch<String>(
-        onChanged: (String? selectedTemperatureSign) {
-          if (selectedTemperatureSign != null) {
-            updateHeaderState.updateTemperatureSign(selectedTemperatureSign); // Update the farm state
-          }
-        },
-        items: (filter, infiniteScrollProps) =>
-        headerState.temperatureSignList, // Provides the list of farms and devices
-        selectedItem: headerState.selectedTemperatureSign, // Sets the default selected item
-        decoratorProps: DropDownDecoratorProps(
-          decoration: InputDecoration(
-            labelText: "Temp", // Label for the dropdown
-            border: OutlineInputBorder(
-                borderRadius:
-                BorderRadius.circular(5), // Rounded border for the input
-                borderSide: BorderSide(
-                  color: themeColors.borderColor,
-                )),
-            enabledBorder: OutlineInputBorder(
-                borderRadius:
-                BorderRadius.circular(5), // Rounded border for the input
-                borderSide: BorderSide(
-                  color: themeColors.borderColor,
-                )),
-            focusedBorder: OutlineInputBorder(
-                borderRadius:
-                BorderRadius.circular(5), // Rounded border for the input
-                borderSide: BorderSide(
-                  color: themeColors.borderColor,
-                )),
-          ),
-        ),
-        popupProps: PopupProps.menu(
-          fit: FlexFit.loose, // Allows the popup to fit loosely
-          constraints:
-          const BoxConstraints(maxHeight: 300), // Limits popup height
-          menuProps: MenuProps(
-            backgroundColor:
-            themeColors.boxColor, // Background color of the dropdown menu
-            elevation: 8, // Shadow elevation for the dropdown menu
-          ),
-          itemBuilder: (context, item, isSelected, boolAgain) {
-            return Container(
-              padding: const EdgeInsets.all(10), // Padding for each item
-              decoration: BoxDecoration(
-                color:
-                themeColors.boxColor, // Background color based on selection
-                borderRadius:
-                BorderRadius.circular(5), // Rounded corners for the item
-              ),
-              child: Text(
-                item, // Displays the farm name
-                style: TextStyle(
-                  color: item == headerState.selectedTemperatureSign
-                      ? themeColors.borderColor
-                      : themeColors
-                      .boxHeadingColor, // Text color based on selection
-                  fontWeight:
-                  item == headerState.selectedTemperatureSign ? FontWeight.w600 : null,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
+  /// Welcome header with main and sub headings.
   Widget welcomeHeader(ThemeColors themeColors, double fiveWidth,
       double mainFontSize, double subFontSize) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
           "Welcome Back",
@@ -387,35 +422,65 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
     );
   }
 
-  // Function to create a row of accessibility buttons (Share, Print, Export)
+  /// Row of accessibility buttons.
   Widget accessibilityButtons(
       double width, double fiveWidth, ThemeColors themeColors) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        _accessibilityButton(Icons.share, "Share", width, themeColors,
-            themeColors.boxColor, themeColors.accessibilityButtonsBorderColor),
+        _accessibilityButton(
+          icon: Icons.share,
+          label: "Share",
+          width: width,
+          themeColors: themeColors,
+          backgroundColor: themeColors.boxColor,
+          textColor: themeColors.accessibilityButtonsBorderColor,
+        ),
         SizedBox(width: fiveWidth * 2),
-        _accessibilityButton(Icons.print, "Print", width, themeColors,
-            themeColors.boxColor, themeColors.accessibilityButtonsBorderColor),
+        _accessibilityButton(
+          icon: Icons.print,
+          label: "Print",
+          width: width,
+          themeColors: themeColors,
+          backgroundColor: themeColors.boxColor,
+          textColor: themeColors.accessibilityButtonsBorderColor,
+        ),
         SizedBox(width: fiveWidth * 2),
-        _accessibilityButton(Icons.save, "Export", width, themeColors,
-            Colors.deepPurple, Colors.white),
+        _accessibilityButton(
+          icon: Icons.save,
+          label: "Export",
+          width: width,
+          themeColors: themeColors,
+          backgroundColor: Colors.deepPurple,
+          textColor: Colors.white,
+        ),
         SizedBox(width: fiveWidth * 2),
         GestureDetector(
           onTap: () {
             logoutUser();
-            },
-          child: _accessibilityButton(Icons.exit_to_app, "Logout", width, themeColors,
-              Colors.red, Colors.white),
+          },
+          child: _accessibilityButton(
+            icon: Icons.exit_to_app,
+            label: "Logout",
+            width: width,
+            themeColors: themeColors,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          ),
         ),
       ],
     );
   }
 
-  Widget _accessibilityButton(
-      IconData icon, String label, double width, ThemeColors themeColors,
-      [Color? backgroundColor, Color? textColor]) {
+  /// Common button widget used in accessibilityButtons.
+  Widget _accessibilityButton({
+    required IconData icon,
+    required String label,
+    required double width,
+    required ThemeColors themeColors,
+    Color? backgroundColor,
+    Color? textColor,
+  }) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Container(
@@ -430,7 +495,6 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
           height: 30,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Icon(icon, size: 15, color: textColor ?? Colors.black),
               Text(
@@ -449,7 +513,7 @@ class CustomHeaderWithFarmDropdown extends ConsumerWidget {
     );
   }
 
-  // Function to create a divider with specific properties
+  /// A simple divider widget.
   Widget divider(ThemeColors themeColors) {
     return Divider(
       color: themeColors.accessibilityButtonsBorderColor,

@@ -5,7 +5,7 @@ import 'package:aiponics_web_app/provider/user%20info%20provider/user_info_provi
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:shimmer/shimmer.dart';
 import '../../../controllers/token controllers/access_and_refresh_token_controller.dart';
 
 class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
@@ -25,23 +25,20 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
     super.key,
     required this.mainPageHeading,
     required this.subHeading,
-
     this.desktopMainFontSize = 25,
     this.desktopSubFontSize = 15,
     this.tabletMainFontSize = 20,
     this.tabletSubFontSize = 12,
     this.mobileMainFontSize = 20,
     this.mobileSubFontSize = 12,
-
     this.desktopButtonWidth = 100,
     this.tabletButtonWidth = 80,
     this.mobileButtonWidth = 80,
   });
 
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Access the current user state
+    // Access the current user state and screen information.
     final userState = ref.watch(userAccountInfoProvider);
     final screenInfoState = ref.watch(dashboardScreenInfoProvider);
     final fiveWidth = screenInfoState['fiveWidth'];
@@ -49,10 +46,10 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
 
     ThemeColors themeColors = ThemeColors(context);
 
-    // Update colors based on
+    // Update colors based on theme.
     final boxHeadingColor = themeColors.boxHeadingColor;
 
-    if(responsive == 'desktop'){
+    if (responsive == 'desktop') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -60,19 +57,19 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome header and dropdown
+              // Left side: Welcome header and accessibility buttons.
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  welcomeHeader(themeColors, fiveWidth, desktopMainFontSize, desktopSubFontSize),
+                  welcomeHeader(
+                      themeColors, fiveWidth, desktopMainFontSize, desktopSubFontSize),
                   const SizedBox(height: 30),
-                  // Share, print, and export button
                   accessibilityButtons(desktopButtonWidth, fiveWidth, themeColors),
                 ],
               ),
+              // Right side: Profile picture, name and role.
               Column(
                 children: [
-                  // Profile picture, name and role
                   userNameRoleAndPicture(userState, boxHeadingColor),
                 ],
               ),
@@ -81,7 +78,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
           divider(themeColors),
         ],
       );
-    }else if (responsive == 'tablet'){
+    } else if (responsive == 'tablet') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -89,19 +86,19 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome header and dropdown
+              // Tablet layout: Welcome header and accessibility buttons.
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  welcomeHeader(themeColors, fiveWidth, tabletMainFontSize, tabletSubFontSize),
+                  welcomeHeader(
+                      themeColors, fiveWidth, tabletMainFontSize, tabletSubFontSize),
                   const SizedBox(height: 30),
-                  // Share, print, and export button
                   accessibilityButtons(tabletButtonWidth, fiveWidth, themeColors),
                 ],
               ),
+              // Profile picture, name and role.
               Column(
                 children: [
-                  // Profile picture, name and role
                   userNameRoleAndPicture(userState, boxHeadingColor),
                 ],
               ),
@@ -110,24 +107,26 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
           divider(themeColors),
         ],
       );
-    }else{
+    } else {
+      // Mobile layout.
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           userNameRoleAndPicture(userState, boxHeadingColor),
           const SizedBox(height: 20),
-          welcomeHeader(themeColors, fiveWidth, mobileMainFontSize, mobileSubFontSize),
+          welcomeHeader(
+              themeColors, fiveWidth, mobileMainFontSize, mobileSubFontSize),
           const SizedBox(height: 30),
-          // Share, print, and export button
           accessibilityButtons(mobileButtonWidth, fiveWidth, themeColors),
           const SizedBox(height: 10),
           divider(themeColors),
         ],
       );
     }
-
   }
 
+  /// Displays the profile picture, first/last name and role.
+  /// If the user data is loading, shimmer placeholders are shown.
   Widget userNameRoleAndPicture(UserAccount userState, Color boxHeadingColor) {
     return Row(
       children: [
@@ -141,8 +140,19 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(50),
-            child: Image.asset(
-              userState.userAccountInfoModel.profilePicture ?? "assets/images/logo.jpeg",
+            child: userState.isLoading
+                ? Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                width: 50,
+                height: 50,
+                color: Colors.grey[300],
+              ),
+            )
+                : Image.asset(
+              userState.userAccountInfoModel.profilePicture ??
+                  "assets/images/logo.jpeg",
               width: 50,
               height: 50,
               fit: BoxFit.cover,
@@ -153,7 +163,18 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            // Display the user name, showing a shimmer placeholder when loading.
+            userState.isLoading
+                ? Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                width: 150, // approximate width for name
+                height: 20,
+                color: Colors.grey[300],
+              ),
+            )
+                : Text(
               "${userState.userAccountInfoModel.firstName} ${userState.userAccountInfoModel.lastName}",
               style: GoogleFonts.nunitoSans(
                 textStyle: TextStyle(
@@ -164,7 +185,18 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
+            // Display the role, with a shimmer placeholder when loading.
+            userState.isLoading
+                ? Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                width: 80, // approximate width for role text
+                height: 15,
+                color: Colors.grey[300],
+              ),
+            )
+                : Text(
               userState.userAccountInfoModel.role[0],
               style: GoogleFonts.nunitoSans(
                 textStyle: TextStyle(
@@ -180,10 +212,11 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
     );
   }
 
-  Widget welcomeHeader(ThemeColors themeColors, double fiveWidth, double mainFontSize, double subFontSize) {
+  /// Creates the welcome header with main and sub-headings.
+  Widget welcomeHeader(
+      ThemeColors themeColors, double fiveWidth, double mainFontSize, double subFontSize) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
           "Welcome Back",
@@ -209,34 +242,39 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
     );
   }
 
-  // Function to create a row of accessibility buttons (Share, Print, Export)
+  /// Creates a row of accessibility buttons for actions like Share, Print, and Export.
   Widget accessibilityButtons(double width, double fiveWidth, ThemeColors themeColors) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        _accessibilityButton(Icons.share, "Share", width, themeColors ,themeColors.boxColor, themeColors.accessibilityButtonsBorderColor),
+        _accessibilityButton(
+            Icons.share, "Share", width, themeColors, themeColors.boxColor, themeColors.accessibilityButtonsBorderColor),
         SizedBox(width: fiveWidth * 2),
-        _accessibilityButton(Icons.print, "Print", width, themeColors ,themeColors.boxColor, themeColors.accessibilityButtonsBorderColor),
+        _accessibilityButton(
+            Icons.print, "Print", width, themeColors, themeColors.boxColor, themeColors.accessibilityButtonsBorderColor),
         SizedBox(width: fiveWidth * 2),
-        _accessibilityButton(Icons.save, "Export", width, themeColors ,Colors.deepPurple, Colors.white),
+        _accessibilityButton(Icons.save, "Export", width, themeColors, Colors.deepPurple, Colors.white),
         SizedBox(width: fiveWidth * 2),
         GestureDetector(
           onTap: () {
             logoutUser();
           },
-          child: _accessibilityButton(Icons.exit_to_app, "Logout", width, themeColors,
-              Colors.red, Colors.white),
+          child: _accessibilityButton(
+              Icons.exit_to_app, "Logout", width, themeColors, Colors.red, Colors.white),
         ),
       ],
     );
   }
 
-  Widget _accessibilityButton(IconData icon, String label, double width, ThemeColors themeColors, [Color? backgroundColor, Color? textColor]) {
+  /// Helper widget to construct an accessibility button.
+  Widget _accessibilityButton(
+      IconData icon, String label, double width, ThemeColors themeColors, [Color? backgroundColor, Color? textColor]) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: themeColors.accessibilityButtonsBorderColor, width: 1),
+          border:
+          Border.all(color: themeColors.accessibilityButtonsBorderColor, width: 1),
           borderRadius: BorderRadius.circular(5),
           color: backgroundColor ?? Colors.transparent,
         ),
@@ -264,7 +302,7 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
     );
   }
 
-  // Function to create a divider with specific properties
+  /// A simple divider widget.
   Widget divider(ThemeColors themeColors) {
     return Divider(
       color: themeColors.accessibilityButtonsBorderColor,
@@ -272,8 +310,4 @@ class CustomHeaderWithoutFarmDropdown extends ConsumerWidget {
       thickness: 0.3,
     );
   }
-
 }
-
-
-
