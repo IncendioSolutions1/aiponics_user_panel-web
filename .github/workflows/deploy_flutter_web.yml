@@ -1,0 +1,37 @@
+name: Deploy Flutter Web App to DigitalOcean Droplet
+
+on:
+  push:
+    branches:
+      - main  # Adjust if you use a different branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.27.3"  # Set your required Flutter version
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        run: flutter build web --release
+
+      - name: Deploy to Droplet via SCP
+        env:
+          DROPLET_IP: ${{ secrets.DROPLET_IP }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          # Create a private key file from the secret
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          # Copy the build/web files to the droplet's flutter app directory
+          scp -i private_key.pem -r build/web/* $DROPLET_USER@$DROPLET_IP:/var/www/flutter_app/
