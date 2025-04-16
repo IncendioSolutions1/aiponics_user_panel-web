@@ -1,0 +1,33 @@
+name: Deploy Flutter Web
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Web Release
+        run: flutter build web --release
+
+      - name: Deploy to Droplet
+        uses: appleboy/scp-action@v0.1.6
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "build/web/*"
+          target: "/var/www/flutter-frontend"

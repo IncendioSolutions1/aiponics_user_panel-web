@@ -1,4 +1,4 @@
-const apiIp = "https://control-panel.ai-ponics.com/";
+const apiIp = "";
 const apiAddress = "${apiIp}api/users/";
 
 const registerApi = "${apiAddress}register/";
