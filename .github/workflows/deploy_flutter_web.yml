@@ -23,15 +23,17 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web --release
 
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
       - name: Deploy to Droplet via SCP
         env:
           DROPLET_IP: ${{ secrets.DROPLET_IP }}
           DROPLET_USER: ${{ secrets.DROPLET_USER }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          # Create a private key file from the secret
-          echo "$SSH_PRIVATE_KEY" > private_key.pem
-          chmod 600 private_key.pem
-          
-          # Copy the build/web files to the droplet's flutter app directory
-          scp -i private_key.pem -r build/web/* $DROPLET_USER@$DROPLET_IP:/var/www/flutter_app/
+          scp -r build/web/* $DROPLET_USER@$DROPLET_IP:/var/www/flutter_app/
