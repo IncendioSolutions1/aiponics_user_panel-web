@@ -29,7 +29,18 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          script: echo "Connection successful!"
+          script: echo "✅ SSH connection successful."
+
+      - name: Prepare Server Directory
+        uses: appleboy/ssh-action@v1.3.1
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            mkdir -p /var/www/flutter-frontend
+            rm -rf /var/www/flutter-frontend/*
+            echo "🧹 Server directory prepared."
 
       - name: Deploy to Droplet
         uses: appleboy/scp-action@v0.1.6
@@ -37,6 +48,5 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          source: "build/web/*"
+          source: "build/web"
           target: "/var/www/flutter-frontend"
-
