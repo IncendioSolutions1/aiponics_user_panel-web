@@ -23,6 +23,14 @@ jobs:
       - name: Build Web Release
         run: flutter build web --release
 
+      - name: Test SSH Connection
+        uses: appleboy/ssh-action@v1.3.1
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: echo "Connection successful!"
+
       - name: Deploy to Droplet
         uses: appleboy/scp-action@v0.1.6
         with:
