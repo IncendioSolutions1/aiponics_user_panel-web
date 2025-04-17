@@ -24,7 +24,7 @@ jobs:
         run: flutter build web --release
 
       - name: Test SSH Connection
-        uses: appleboy/ssh-action@v1.3.1
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.USERNAME }}
